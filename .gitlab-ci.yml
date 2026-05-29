@@ -283,24 +283,24 @@ release:create:
     reports:
       dotenv: release.env
 
-#release:packagist:
-#  stage: release
-#  image: curlimages/curl:8.8.0
-#  needs:
-#    - job: release:create
-#      artifacts: true
-#  rules:
-#    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"
-#  script:
-#    - |
-#      if [ -z "$PACKAGIST_TOKEN" ]; then
-#        echo "PACKAGIST_TOKEN is required to notify Packagist."
-#        exit 1
-#      fi
-#
-#      curl --silent --show-error --fail \
-#        --request POST \
-#        --header "Content-Type: application/json" \
-#        --header "Authorization: Bearer otghcloud:$PACKAGIST_TOKEN" \
-#        --url "https://packagist.org/api/update-package" \
-#        --data '{"repository":"https://packagist.org/otghcloud/laravel-edgelink"}'
+release:packagist:
+  stage: release
+  image: curlimages/curl:8.8.0
+  needs:
+    - job: release:create
+      artifacts: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"
+  script:
+    - |
+      if [ -z "$PACKAGIST_TOKEN" ]; then
+        echo "PACKAGIST_TOKEN is required to notify Packagist."
+        exit 1
+      fi
+
+      curl --silent --show-error --fail \
+        --request POST \
+        --header "Content-Type: application/json" \
+        --header "Authorization: Bearer otghcloud:$PACKAGIST_TOKEN" \
+        --url "https://packagist.org/api/update-package" \
+        --data '{"repository":"https://packagist.org/otghcloud/laravel-edgelink"}'
