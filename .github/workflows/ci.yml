@@ -111,10 +111,6 @@ jobs:
           name: vendor-php-${{ matrix.php }}
           path: vendor
 
-      - name: Discover package for Testbench
-        run: |
-          php ./vendor/bin/testbench package:discover --ansi
-
       - name: Run PHPUnit with JUnit output
         run: | 
           mkdir -p bootstrap/cache
