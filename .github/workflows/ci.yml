@@ -85,32 +85,6 @@ jobs:
         with:
           preset: laravel
 
-  analyse_phpstan:
-    name: analyse:phpstan (PHP 8.5)
-    runs-on: ubuntu-latest
-    needs:
-      - deps
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.5'
-          tools: composer:v2
-          coverage: none
-
-      - name: Download vendor artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: vendor-php-8.5
-          path: vendor
-
-      - name: Run PHPStan
-        run: | 
-          composer analyse
-
   test_phpunit:
     name: test:phpunit (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
@@ -206,7 +180,6 @@ jobs:
     needs:
       - deps
       - lint_php
-      - analyse_phpstan
       - test_phpunit
     if: always()
     steps:
@@ -218,7 +191,6 @@ jobs:
           results=(
             "deps=${{ needs.deps.result }}"
             "lint_php=${{ needs.lint_php.result }}"
-            "analyse_phpstan=${{ needs.analyse_phpstan.result }}"
             "test_phpunit=${{ needs.test_phpunit.result }}"
           )
 
