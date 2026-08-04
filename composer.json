@@ -47,7 +47,9 @@
         "analyse": "vendor/bin/phpstan analyse",
         "test": "vendor/bin/phpunit",
         "test-coverage": "vendor/bin/phpunit --coverage-text",
-        "format": "vendor/bin/pint"
+        "format": "vendor/bin/pint",
+        "rtu:cli": "php development/rtu-cli.php",
+        "rtu:probe": "php development/rtu-cli.php probe"
     },
     "config": {
         "sort-packages": true,

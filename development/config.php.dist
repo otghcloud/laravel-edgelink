@@ -1,0 +1,20 @@
+<?php
+// Copy this file to development/config.php for local development.
+
+declare(strict_types=1);
+
+return [
+    // Required for most commands unless provided by CLI flags or env vars.
+    'base-url' => '',
+    'password' => '',
+
+    // Optional overrides.
+    'referer' => null,
+    'verify-tls' => false,
+    'timeout' => 10,
+
+    // Output defaults.
+    'response-mode' => 'data',
+    'raw' => null,
+    'debug' => null,
+];
