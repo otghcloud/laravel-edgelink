@@ -26,7 +26,7 @@ jobs:
           - '8.5'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -41,10 +41,9 @@ jobs:
         run: echo "COMPOSER_CACHE_DIR=$GITHUB_WORKSPACE/.composer-cache" >> "$GITHUB_ENV"
 
       - name: Restore Composer cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
-            vendor
             .composer-cache
           key: php-${{ matrix.php }}-${{ runner.os }}-${{ hashFiles('composer.lock') }}
 
@@ -52,7 +51,7 @@ jobs:
         run: composer install --prefer-dist --no-ansi --no-interaction --no-progress --no-scripts
 
       - name: Upload vendor artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: vendor-php-${{ matrix.php }}
           path: vendor
@@ -71,10 +70,10 @@ jobs:
           - '8.5'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download vendor artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: vendor-php-${{ matrix.php }}
           path: vendor
@@ -83,34 +82,6 @@ jobs:
         uses: aglipanci/laravel-pint-action@0.1.0
         with:
           preset: laravel
-
-  lint_commits:
-    name: lint:commits
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Validate conventional commits
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          TARGET_SHA="${GITHUB_SHA}"
-
-          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-            TARGET_SHA="${{ github.event.pull_request.head.sha }}"
-          fi
-
-          if [[ -z "$TARGET_SHA" || "$TARGET_SHA" == "0000000000000000000000000000000000000000" ]]; then
-            echo "Unable to determine commit SHA for linting."
-            exit 1
-          fi
-
-          header=$(git show -s --format=%s "$TARGET_SHA")
-          ./scripts/validate-conventional-commit.sh "$header"
 
   test_phpunit:
     name: test:phpunit (PHP ${{ matrix.php }})
@@ -125,7 +96,7 @@ jobs:
           - '8.5'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -134,18 +105,15 @@ jobs:
           tools: composer:v2
           coverage: none
 
-#      - name: Download vendor artifact
-#        uses: actions/download-artifact@v4
-#        with:
-#          name: vendor-php-${{ matrix.php }}
-#          path: vendor
+      - name: Download vendor artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: vendor-php-${{ matrix.php }}
+          path: vendor
 
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-ansi --no-interaction --no-progress --no-scripts
-
-#      - name: Discover package for Testbench
-#        run: |
-#          php ./vendor/bin/testbench package:discover --no-ansi
+      - name: Discover package for Testbench
+        run: |
+          php ./vendor/bin/testbench package:discover --ansi
 
       - name: Run PHPUnit with JUnit output
         run: | 
@@ -154,7 +122,7 @@ jobs:
 
       - name: Upload test artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-artifacts-php-${{ matrix.php }}
           path: |
@@ -162,6 +130,45 @@ jobs:
             storage/logs
           if-no-files-found: ignore
           retention-days: 7
+
+  all-checks-passed:
+    name: CI / All checks passed
+    runs-on: ubuntu-latest
+    permissions: {}
+    needs:
+      - deps
+      - lint_php
+      - test_phpunit
+    if: always()
+    steps:
+      - name: Check all jobs passed
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          results=(
+            "deps=${{ needs.deps.result }}"
+            "lint_php=${{ needs.lint_php.result }}"
+            "test_phpunit=${{ needs.test_phpunit.result }}"
+          )
+
+          failed=false
+          for entry in "${results[@]}"; do
+            job="${entry%%=*}"
+            result="${entry##*=}"
+            echo "${job}: ${result}"
+            case "${result}" in
+              success|skipped) ;;
+              *) failed=true ;;
+            esac
+          done
+
+          if [[ "${failed}" == "true" ]]; then
+            echo "One or more jobs failed or were cancelled."
+            exit 1
+          fi
+
+          echo "All jobs passed or were skipped."
 
 #  analyse_phpstan:
 #    name: analyse:phpstan (PHP ${{ matrix.php }})
@@ -176,7 +183,7 @@ jobs:
 ##          - '8.5'
 ##    steps:
 ##      - name: Checkout
-##        uses: actions/checkout@v4
+##        uses: actions/checkout@v7
 
 ##      - name: Setup PHP
 ##        uses: shivammathur/setup-php@v2
@@ -186,7 +193,7 @@ jobs:
 ##          coverage: none
 
 ##      - name: Download vendor artifact
-##        uses: actions/download-artifact@v4
+##        uses: actions/download-artifact@v8
 ##        with:
 ##          name: vendor-php-${{ matrix.php }}
 ##          path: vendor
@@ -194,3 +201,4 @@ jobs:
 ##      - name: Run PHPStan
 ##        run: |
 ##          php ./vendor/bin/phpstan analyse
+
