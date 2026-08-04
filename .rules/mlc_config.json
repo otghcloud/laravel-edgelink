@@ -1,8 +1,4 @@
 {
-  "ignorePatterns": [
-    {
-      "pattern": "https://otgh-static-assets.s3.otgh.cloud/**"
-    }
-  ],
+  "ignorePatterns": [],
   "replacementPatterns": []
 }
