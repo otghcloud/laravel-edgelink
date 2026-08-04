@@ -70,9 +70,9 @@ You can create clients directly with runtime connection details when you need to
 use OTGH\LaravelEdgelink\LaravelEdgelinkClient;
 
 $client = LaravelEdgelinkClient::make(
-	baseUrl: 'https://10.5.1.60',
+	baseUrl: 'https://192.168.1.10',
 	password: 'rtu-password',
-	referer: 'https://10.5.1.60',
+	referer: 'https://192.168.1.10',
 	verifyTls: false,
 	timeoutSeconds: 10,
 );
@@ -101,8 +101,8 @@ Example with multiple RTUs in one job/request:
 use OTGH\LaravelEdgelink\LaravelEdgelinkClient;
 
 $rtus = [
-	['host' => '10.5.1.60', 'password' => 'pass-a'],
-	['host' => '10.5.1.61', 'password' => 'pass-b'],
+	['host' => '10.5.1.60', 'password' => 'foo'],
+	['host' => '10.5.1.61', 'password' => 'bar'],
 ];
 
 foreach ($rtus as $rtu) {
