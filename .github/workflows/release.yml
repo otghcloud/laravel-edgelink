@@ -181,6 +181,13 @@ jobs:
           ref: ${{ needs.bump.outputs.release_sha }}
           fetch-depth: 0
 
+      - name: Set up Git
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+
       - name: Build tag message from PR
         env:
           NEW_VERSION: ${{ needs.bump.outputs.version }}
