@@ -1,3 +1,7 @@
+---
+title: Logs Endpoint
+---
+
 # Logs Endpoint
 
 Class: `LogsEndpoint`

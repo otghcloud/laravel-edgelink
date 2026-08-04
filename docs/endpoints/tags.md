@@ -1,3 +1,7 @@
+---
+title: Tags Endpoint
+---
+
 # Tags Endpoint
 
 Class: `TagsEndpoint`

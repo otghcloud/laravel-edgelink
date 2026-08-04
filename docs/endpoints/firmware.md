@@ -1,3 +1,7 @@
+---
+title: Firmware Endpoint
+---
+
 # Firmware Endpoint
 
 Class: `FirmwareEndpoint`

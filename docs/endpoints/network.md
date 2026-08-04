@@ -1,3 +1,7 @@
+---
+title: Network Endpoint
+---
+
 # Network Endpoint
 
 Class: `NetworkEndpoint`

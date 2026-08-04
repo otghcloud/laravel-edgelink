@@ -1,3 +1,7 @@
+---
+title: Data Logger Endpoint
+---
+
 # Data Logger Endpoint
 
 Class: `DataLoggerEndpoint`

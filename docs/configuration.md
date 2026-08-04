@@ -1,3 +1,7 @@
+---
+title: Configuration
+---
+
 # Configuration
 
 The package reads config from `config/edgelink.php`.

@@ -1,3 +1,7 @@
+---
+title: System Endpoint
+---
+
 # System Endpoint
 
 Class: `SystemEndpoint`

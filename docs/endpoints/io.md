@@ -1,3 +1,7 @@
+---
+title: IO Endpoint
+---
+
 # IO Endpoint
 
 Class: `IoEndpoint`
