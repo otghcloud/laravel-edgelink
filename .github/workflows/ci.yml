@@ -72,21 +72,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+#      - name: Setup PHP
+#        uses: shivammathur/setup-php@v2
+#        with:
+#          php-version: ${{ matrix.php }}
+#          tools: composer:v2
+#          coverage: none
+#
+#      - name: Download vendor artifact
+#        uses: actions/download-artifact@v4
+#        with:
+#          name: vendor-php-${{ matrix.php }}
+#          path: vendor
+      - name: "laravel-pint"
+        uses: aglipanci/laravel-pint-action@0.1.0
         with:
-          php-version: ${{ matrix.php }}
-          tools: composer:v2
-          coverage: none
-
-      - name: Download vendor artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: vendor-php-${{ matrix.php }}
-          path: vendor
-
-      - name: Run Pint in test mode
-        run: ./vendor/bin/pint --test
+          preset: laravel
 
   lint_commits:
     name: lint:commits
