@@ -1,8 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit bootstrap="vendor/autoload.php" colors="true" backupGlobals="false" cacheResult="false" executionOrder="random" failOnRisky="true" failOnWarning="true" stopOnFailure="false" cacheDirectory=".phpunit.cache" backupStaticProperties="false">
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         cacheDirectory=".phpunit.cache"
+         colors="true"
+         executionOrder="depends,defects"
+         beStrictAboutOutputDuringTests="true"
+         failOnRisky="true"
+         failOnWarning="true"
+         stopOnFailure="false"
+>
   <testsuites>
-    <testsuite name="Package Test Suite">
-      <directory>tests</directory>
+    <testsuite name="Unit">
+      <directory>tests/Unit</directory>
+    </testsuite>
+    <testsuite name="Feature">
+      <directory>tests/Feature</directory>
     </testsuite>
   </testsuites>
+
+  <source>
+    <include>
+      <directory>src</directory>
+    </include>
+  </source>
+
+  <php>
+    <env name="APP_ENV" value="testing"/>
+    <env name="APP_DEBUG" value="true"/>
+    <env name="CACHE_STORE" value="array"/>
+    <env name="QUEUE_CONNECTION" value="sync"/>
+    <env name="SESSION_DRIVER" value="array"/>
+    <env name="MAIL_MAILER" value="array"/>
+  </php>
 </phpunit>

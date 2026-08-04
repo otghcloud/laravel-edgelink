@@ -124,8 +124,8 @@ jobs:
             ./scripts/validate-conventional-commit.sh "$header"
           done
 
-  test_pest:
-    name: test:pest (PHP ${{ matrix.php }})
+  test_phpunit:
+    name: test:phpunit (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
     needs:
       - deps
@@ -152,9 +152,9 @@ jobs:
           name: vendor-php-${{ matrix.php }}
           path: vendor
 
-      - name: Run Pest with JUnit output
+      - name: Run PHPUnit with JUnit output
         run: | 
-          php -d memory_limit=1024M ./vendor/bin/pest --log-junit junit.xml
+          php -d memory_limit=1024M ./vendor/bin/phpunit --log-junit junit.xml
 
       - name: Upload test artifacts
         if: always()
