@@ -164,7 +164,20 @@ jobs:
               fwrite(STDERR, "Unable to read coverage.xml\n");
               exit(1);
             }
-            $lineRate = (float) ($xml["line-rate"] ?? 0);
+
+            // Clover can expose coverage either as root line-rate or as project metrics.
+            $lineRate = isset($xml["line-rate"]) ? (float) $xml["line-rate"] : 0.0;
+
+            if ($lineRate <= 0.0 && isset($xml->project->metrics)) {
+              $metrics = $xml->project->metrics;
+              $statements = (float) ($metrics["statements"] ?? 0);
+              $coveredStatements = (float) ($metrics["coveredstatements"] ?? 0);
+
+              if ($statements > 0) {
+                $lineRate = $coveredStatements / $statements;
+              }
+            }
+
             $coverage = round($lineRate * 100, 2);
             $threshold = (float) getenv("COVERAGE_THRESHOLD");
             fwrite(STDOUT, "Coverage: {$coverage}% (threshold: {$threshold}%)\n");
