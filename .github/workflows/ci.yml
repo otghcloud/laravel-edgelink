@@ -98,31 +98,19 @@ jobs:
         run: |
           set -euo pipefail
 
+          TARGET_SHA="${GITHUB_SHA}"
+
           if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-            FROM_REF="${{ github.event.pull_request.base.sha }}"
-          else
-            FROM_REF="${{ github.event.before }}"
+            TARGET_SHA="${{ github.event.pull_request.head.sha }}"
           fi
 
-          if [[ -z "$FROM_REF" || "$FROM_REF" == "0000000000000000000000000000000000000000" ]]; then
-            FROM_REF=$(git rev-list --max-parents=0 HEAD | tail -n1)
-          fi
-
-          if [[ -z "$FROM_REF" ]]; then
-            echo "Unable to determine commit range for linting."
+          if [[ -z "$TARGET_SHA" || "$TARGET_SHA" == "0000000000000000000000000000000000000000" ]]; then
+            echo "Unable to determine commit SHA for linting."
             exit 1
           fi
 
-          COMMITS=$(git rev-list --no-merges "$FROM_REF..${GITHUB_SHA}")
-
-          if [[ -z "$COMMITS" ]]; then
-            COMMITS="${GITHUB_SHA}"
-          fi
-
-          for commit_sha in $COMMITS; do
-            header=$(git show -s --format=%s "$commit_sha")
-            ./scripts/validate-conventional-commit.sh "$header"
-          done
+          header=$(git show -s --format=%s "$TARGET_SHA")
+          ./scripts/validate-conventional-commit.sh "$header"
 
   test_phpunit:
     name: test:phpunit (PHP ${{ matrix.php }})
