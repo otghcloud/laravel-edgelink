@@ -1,5 +1,7 @@
 # Usage Examples
 
+All examples below use the canonical endpoint methods.
+
 ## Basic Usage From Config
 
 ```php
@@ -8,9 +10,9 @@ use OTGH\LaravelEdgelink\LaravelEdgelinkClient;
 $client = LaravelEdgelinkClient::fromConfig();
 $client->login();
 
-$tags = $client->getTags();
+$tags = $client->tags()->list();
 $version = $client->system()->version();
-$aiChannel = $client->io()->ai(slot: 0, channel: 2);
+$aiChannel = $client->io()->read(type: 'ai', slot: 0, channel: 2);
 ```
 
 ## Runtime Connection Construction

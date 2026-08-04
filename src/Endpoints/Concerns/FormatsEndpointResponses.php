@@ -7,7 +7,16 @@ use OTGH\LaravelEdgelink\Exceptions\ResponseModeException;
 trait FormatsEndpointResponses
 {
     /**
+     * Execute a request through the client and format according to configured mode.
+     *
+     * @param  string  $method  HTTP method to execute.
+     * @param  string  $path  Endpoint path.
      * @param  array<string, mixed>  $payload
+     * @param  bool  $requiresAuth  Whether authenticated request context is required.
+     * @param  ?callable  $normalizer  Optional response normalizer callback.
+     * @param  ?bool  $raw  Return raw payload when true.
+     * @param  ?string  $responseMode  Response mode override: data or envelope.
+     * @param  ?bool  $debug  Include debug trace when true.
      * @param  array<string, mixed>  $meta
      */
     protected function requestAndFormat(
@@ -41,7 +50,10 @@ trait FormatsEndpointResponses
     }
 
     /**
+     * Format normalized data into either data-only or envelope mode.
+     *
      * @param  array<string, mixed>  $meta
+     * @param  ?array<string, mixed>  $debugPayload
      */
     protected function formatResponse(
         mixed $normalized,
@@ -75,6 +87,9 @@ trait FormatsEndpointResponses
         );
     }
 
+    /**
+     * Resolve whether raw responses should be returned.
+     */
     protected function shouldReturnRaw(?bool $raw): bool
     {
         if ($raw !== null) {
@@ -84,6 +99,9 @@ trait FormatsEndpointResponses
         return (bool) $this->client->getConfig('raw_response', false);
     }
 
+    /**
+     * Resolve response mode from override or client defaults.
+     */
     protected function resolveResponseMode(?string $responseMode): string
     {
         $mode = $responseMode ?? (string) $this->client->getConfig('response_mode', 'data');
@@ -96,6 +114,9 @@ trait FormatsEndpointResponses
         return $mode;
     }
 
+    /**
+     * Resolve whether debug payload should be included.
+     */
     protected function shouldIncludeDebug(?bool $includeDebug): bool
     {
         if ($includeDebug !== null) {
@@ -105,6 +126,12 @@ trait FormatsEndpointResponses
         return (bool) $this->client->getConfig('debug_enabled', false);
     }
 
+    /**
+     * Filter and return debug payload according to debug field toggles.
+     *
+     * @param  ?array<string, mixed>  $debugPayload
+     * @return ?array<string, mixed>
+     */
     protected function resolveDebugPayload(?bool $includeDebug, ?array $debugPayload): ?array
     {
         if (! $this->shouldIncludeDebug($includeDebug)) {

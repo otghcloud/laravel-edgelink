@@ -19,6 +19,9 @@ use OTGH\LaravelEdgelink\Exceptions\ConfigurationException;
 use OTGH\LaravelEdgelink\Exceptions\RequestException;
 use OTGH\LaravelEdgelink\Exceptions\SessionException;
 
+/**
+ * @phpstan-consistent-constructor
+ */
 class LaravelEdgelinkClient
 {
     /**
@@ -44,6 +47,22 @@ class LaravelEdgelinkClient
 
     protected NetworkEndpoint $networkEndpoint;
 
+    /**
+     * Create a new Edgelink client instance.
+     *
+     * @param  string  $baseUrl  Base RTU URL.
+     * @param  string  $password  RTU login password.
+     * @param  ?string  $referer  Optional referer header value.
+     * @param  bool  $verifyTls  Enable TLS certificate verification.
+     * @param  int  $timeoutSeconds  Request timeout in seconds.
+     * @param  string  $responseMode  Default response mode: data or envelope.
+     * @param  bool  $rawResponse  Default raw response behavior.
+     * @param  bool  $debugEnabled  Default debug trace behavior.
+     * @param  bool  $debugRequestHeaders  Include request headers in debug output.
+     * @param  bool  $debugRequestBody  Include request body in debug output.
+     * @param  bool  $debugResponseHeaders  Include response headers in debug output.
+     * @param  bool  $debugResponseBody  Include response body in debug output.
+     */
     public function __construct(
         protected string $baseUrl,
         protected string $password,
@@ -68,6 +87,11 @@ class LaravelEdgelinkClient
         $this->networkEndpoint = new NetworkEndpoint($this);
     }
 
+    /**
+     * Build a client instance from package/service configuration.
+     *
+     * @param  ?array<string, mixed>  $config  Optional explicit config override.
+     */
     public static function fromConfig(?array $config = null): static
     {
         $config ??= config('edgelink', config('services.edgelink', []));
@@ -88,6 +112,22 @@ class LaravelEdgelinkClient
         );
     }
 
+    /**
+     * Build a client instance from runtime-provided connection settings.
+     *
+     * @param  string  $baseUrl  Base RTU URL.
+     * @param  string  $password  RTU login password.
+     * @param  ?string  $referer  Optional referer header value.
+     * @param  bool  $verifyTls  Enable TLS certificate verification.
+     * @param  int  $timeoutSeconds  Request timeout in seconds.
+     * @param  string  $responseMode  Default response mode.
+     * @param  bool  $rawResponse  Default raw response behavior.
+     * @param  bool  $debugEnabled  Default debug trace behavior.
+     * @param  bool  $debugRequestHeaders  Include request headers in debug output.
+     * @param  bool  $debugRequestBody  Include request body in debug output.
+     * @param  bool  $debugResponseHeaders  Include response headers in debug output.
+     * @param  bool  $debugResponseBody  Include response body in debug output.
+     */
     public static function make(
         string $baseUrl,
         string $password,
@@ -118,11 +158,20 @@ class LaravelEdgelinkClient
         );
     }
 
+    /**
+     * Get the active session identifier.
+     */
     public function sessionId(): ?string
     {
         return $this->sessionId;
     }
 
+    /**
+     * Read a normalized configuration value from the client instance.
+     *
+     * @param  string  $key  Config key to read.
+     * @param  mixed  $default  Default when key is not recognized.
+     */
     public function getConfig(string $key, mixed $default = null): mixed
     {
         return match ($key) {
@@ -142,12 +191,18 @@ class LaravelEdgelinkClient
         };
     }
 
+    /**
+     * Mark the current index in debug history for scoped trace collection.
+     */
     public function beginDebugTrace(): int
     {
         return count($this->debugHistory);
     }
 
     /**
+     * Collect debug exchanges from a specific history offset.
+     *
+     * @param  int  $fromIndex  Starting debug history index.
      * @return array<int, array<string, mixed>>
      */
     public function collectDebugTrace(int $fromIndex = 0): array
@@ -155,46 +210,73 @@ class LaravelEdgelinkClient
         return array_slice($this->debugHistory, max(0, $fromIndex));
     }
 
+    /**
+     * Get auth endpoint API wrapper.
+     */
     public function auth(): AuthEndpoint
     {
         return $this->authEndpoint;
     }
 
+    /**
+     * Get tags endpoint API wrapper.
+     */
     public function tags(): TagsEndpoint
     {
         return $this->tagsEndpoint;
     }
 
+    /**
+     * Get system endpoint API wrapper.
+     */
     public function system(): SystemEndpoint
     {
         return $this->systemEndpoint;
     }
 
+    /**
+     * Get IO endpoint API wrapper.
+     */
     public function io(): IoEndpoint
     {
         return $this->ioEndpoint;
     }
 
+    /**
+     * Get data logger endpoint API wrapper.
+     */
     public function dataLogger(): DataLoggerEndpoint
     {
         return $this->dataLoggerEndpoint;
     }
 
+    /**
+     * Get firmware endpoint API wrapper.
+     */
     public function firmware(): FirmwareEndpoint
     {
         return $this->firmwareEndpoint;
     }
 
+    /**
+     * Get logs endpoint API wrapper.
+     */
     public function logs(): LogsEndpoint
     {
         return $this->logsEndpoint;
     }
 
+    /**
+     * Get network endpoint API wrapper.
+     */
     public function network(): NetworkEndpoint
     {
         return $this->networkEndpoint;
     }
 
+    /**
+     * Set the current session identifier manually.
+     */
     public function setSessionId(string $sessionId): self
     {
         $this->sessionId = $sessionId;
@@ -202,11 +284,19 @@ class LaravelEdgelinkClient
         return $this;
     }
 
+    /**
+     * Authenticate using the configured password.
+     *
+     * @return string Established session identifier.
+     */
     public function login(): string
     {
         return $this->auth()->login($this->password);
     }
 
+    /**
+     * Execute low-level login request and extract session identifier.
+     */
     public function performLogin(string $password): string
     {
         $this->assertConfigured();
@@ -230,11 +320,17 @@ class LaravelEdgelinkClient
         return $sessionId;
     }
 
+    /**
+     * Logout via auth endpoint wrapper.
+     */
     public function logout(): array|string|null
     {
         return $this->auth()->logout();
     }
 
+    /**
+     * Execute low-level logout request and clear local session state.
+     */
     public function performLogout(): array|string|null
     {
         $response = $this->authenticatedRequest()->put('/sys/log_out');
@@ -250,26 +346,11 @@ class LaravelEdgelinkClient
         return $response->json() ?? $response->body();
     }
 
-    public function getTags(): array
-    {
-        return $this->tags()->all();
-    }
-
-    public function getTag(string $tagName): ?array
-    {
-        return $this->tags()->one($tagName);
-    }
-
-    public function updateTag(string $path, array $payload): array|string|null
-    {
-        return $this->tags()->update($path, $payload);
-    }
-
-    public function updateDoValue(int $slot, int $channel, int|float|string|bool $value): array|string|null
-    {
-        return $this->tags()->updateDoValue($slot, $channel, $value);
-    }
-
+    /**
+     * Execute request and force JSON-decoded array response.
+     *
+     * @param  array<string, mixed>  $data
+     */
     public function requestJson(string $method, string $path, array $data = [], bool $requiresAuth = true): array
     {
         $response = $this->request($method, $path, $data, $requiresAuth);
@@ -277,6 +358,11 @@ class LaravelEdgelinkClient
         return $response->json() ?? [];
     }
 
+    /**
+     * Execute request and return JSON array when possible, otherwise body string.
+     *
+     * @param  array<string, mixed>  $data
+     */
     public function requestBody(string $method, string $path, array $data = [], bool $requiresAuth = true): array|string|null
     {
         $response = $this->request($method, $path, $data, $requiresAuth);
@@ -284,6 +370,11 @@ class LaravelEdgelinkClient
         return $response->json() ?? $response->body();
     }
 
+    /**
+     * Execute a raw HTTP request through the underlying Laravel client.
+     *
+     * @param  array<string, mixed>  $data
+     */
     public function request(string $method, string $path, array $data = [], bool $requiresAuth = true): Response
     {
         $request = $requiresAuth ? $this->authenticatedRequest() : $this->baseRequest();
@@ -318,11 +409,17 @@ class LaravelEdgelinkClient
         return $response;
     }
 
+    /**
+     * Determine whether a non-empty session is currently available.
+     */
     public function isAuthenticated(): bool
     {
         return $this->sessionId !== null && $this->sessionId !== '';
     }
 
+    /**
+     * Ensure an authenticated session exists before issuing protected requests.
+     */
     public function ensureAuthenticated(): void
     {
         if ($this->isAuthenticated()) {
@@ -342,6 +439,9 @@ class LaravelEdgelinkClient
         }
     }
 
+    /**
+     * Build an authenticated request instance.
+     */
     protected function authenticatedRequest(): PendingRequest
     {
         $this->ensureAuthenticated();
@@ -351,6 +451,9 @@ class LaravelEdgelinkClient
         ])->asJson();
     }
 
+    /**
+     * Build a base request instance with shared headers and timeout settings.
+     */
     protected function baseRequest(): PendingRequest
     {
         $request = Http::acceptJson()
@@ -368,6 +471,9 @@ class LaravelEdgelinkClient
         return $request;
     }
 
+    /**
+     * Validate required runtime configuration values.
+     */
     protected function assertConfigured(): void
     {
         if ($this->baseUrl === '') {
@@ -379,11 +485,17 @@ class LaravelEdgelinkClient
         }
     }
 
+    /**
+     * Ensure request paths begin with a leading slash.
+     */
     protected function normalizePath(string $path): string
     {
         return str_starts_with($path, '/') ? $path : '/'.$path;
     }
 
+    /**
+     * Extract a session identifier from response cookies or JSON payload.
+     */
     protected function extractSessionId(Response $response): ?string
     {
         $headers = $response->headers();
@@ -410,6 +522,8 @@ class LaravelEdgelinkClient
     }
 
     /**
+     * Build request headers used in debug exchange snapshots.
+     *
      * @return array<string, string>
      */
     protected function buildDebugRequestHeaders(bool $requiresAuth): array
@@ -427,6 +541,12 @@ class LaravelEdgelinkClient
         return $headers;
     }
 
+    /**
+     * Record a request/response exchange to bounded debug history.
+     *
+     * @param  array<string, string>  $requestHeaders
+     * @param  array<string, mixed>  $requestBody
+     */
     protected function recordDebugExchange(
         string $method,
         string $path,
@@ -453,6 +573,9 @@ class LaravelEdgelinkClient
         }
     }
 
+    /**
+     * Normalize mixed scalar config values to booleans.
+     */
     protected static function toBool(mixed $value, bool $default = false): bool
     {
         if (is_bool($value)) {

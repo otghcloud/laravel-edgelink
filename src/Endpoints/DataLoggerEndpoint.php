@@ -9,8 +9,20 @@ class DataLoggerEndpoint
 {
     use FormatsEndpointResponses;
 
+    /**
+     * Create a new data logger endpoint wrapper.
+     */
     public function __construct(protected LaravelEdgelinkClient $client) {}
 
+    /**
+     * Query data logger records from /data/daq.
+     *
+     * @param  array<string, mixed>  $payload  Query parameters sent to the endpoint.
+     * @param  ?bool  $raw  Return raw payload when true.
+     * @param  ?string  $responseMode  Response mode override: data or envelope.
+     * @param  ?bool  $debug  Include debug trace when true.
+     * @return array|string|null Normalized, enveloped, or raw response payload.
+     */
     public function query(array $payload = [], ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null): array|string|null
     {
         // Spec indicates /data/daq for data logger interactions.
@@ -27,6 +39,8 @@ class DataLoggerEndpoint
     }
 
     /**
+     * Normalize data logger query output to a stable contract.
+     *
      * @param  array<string, mixed>  $query
      * @return array<string, mixed>
      */

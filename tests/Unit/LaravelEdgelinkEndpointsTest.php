@@ -307,7 +307,7 @@ class LaravelEdgelinkEndpointsTest extends TestCase
         $client->system()->version(responseMode: 'invalid-mode');
     }
 
-    public function test_io_endpoint_wrappers_call_expected_ai_ao_di_do_paths(): void
+    public function test_io_endpoint_read_supports_all_io_types(): void
     {
         Http::fake([
             'https://rtu.local/data/ai_value/slot_0/ch_2' => Http::response(['val' => '11'], 200),
@@ -319,10 +319,10 @@ class LaravelEdgelinkEndpointsTest extends TestCase
         $client = LaravelEdgelinkClient::make('https://rtu.local', 'x', 'https://rtu.local', true);
         $client->setSessionId('sid-123');
 
-        $this->assertSame(['type' => 'ai', 'slot' => 0, 'channel' => 2, 'value' => '11'], $client->io()->ai(0, 2));
-        $this->assertSame(['type' => 'ao', 'slot' => 0, 'channel' => 3, 'value' => '22'], $client->io()->ao(0, 3));
-        $this->assertSame(['type' => 'di', 'slot' => 0, 'channel' => 1, 'value' => '1'], $client->io()->di(0, 1));
-        $this->assertSame(['type' => 'do', 'slot' => 0, 'channel' => 0, 'value' => '0'], $client->io()->do(0, 0));
+        $this->assertSame(['type' => 'ai', 'slot' => 0, 'channel' => 2, 'value' => '11'], $client->io()->read('ai', 0, 2));
+        $this->assertSame(['type' => 'ao', 'slot' => 0, 'channel' => 3, 'value' => '22'], $client->io()->read('ao', 0, 3));
+        $this->assertSame(['type' => 'di', 'slot' => 0, 'channel' => 1, 'value' => '1'], $client->io()->read('di', 0, 1));
+        $this->assertSame(['type' => 'do', 'slot' => 0, 'channel' => 0, 'value' => '0'], $client->io()->read('do', 0, 0));
     }
 
     public function test_io_endpoint_can_return_envelope_with_debug(): void
@@ -343,7 +343,7 @@ class LaravelEdgelinkEndpointsTest extends TestCase
         );
         $client->setSessionId('sid-123');
 
-        $result = $client->io()->ai(0, 2);
+        $result = $client->io()->read('ai', 0, 2);
 
         $this->assertIsArray($result);
         $this->assertSame(true, $result['ok']);
@@ -399,7 +399,7 @@ class LaravelEdgelinkEndpointsTest extends TestCase
         ], $client->io()->read('do', 0, 0));
     }
 
-    public function test_io_endpoint_write_wrappers_send_val_payload(): void
+    public function test_io_endpoint_write_uses_val_payload_for_all_io_types(): void
     {
         Http::fake([
             'https://rtu.local/data/ai_value/slot_0/ch_2' => Http::response(['ok' => true], 200),
@@ -411,10 +411,10 @@ class LaravelEdgelinkEndpointsTest extends TestCase
         $client = LaravelEdgelinkClient::make('https://rtu.local', 'x', 'https://rtu.local', true);
         $client->setSessionId('sid-123');
 
-        $client->io()->setAi(0, 2, 15);
-        $client->io()->setAo(0, 3, 16);
-        $client->io()->setDi(0, 1, 1);
-        $client->io()->setDo(0, 0, 0);
+        $client->io()->write('ai', 0, 2, 15);
+        $client->io()->write('ao', 0, 3, 16);
+        $client->io()->write('di', 0, 1, 1);
+        $client->io()->write('do', 0, 0, 0);
 
         Http::assertSent(function ($request) {
             return $request->url() === 'https://rtu.local/data/ai_value/slot_0/ch_2'
@@ -596,7 +596,7 @@ class LaravelEdgelinkEndpointsTest extends TestCase
         });
     }
 
-    public function test_tags_endpoint_can_return_envelope_for_all(): void
+    public function test_tags_endpoint_can_return_envelope_for_list(): void
     {
         Http::fake([
             'https://rtu.local/data/tags' => Http::response([
@@ -616,7 +616,7 @@ class LaravelEdgelinkEndpointsTest extends TestCase
         );
         $client->setSessionId('sid-123');
 
-        $result = $client->tags()->all();
+        $result = $client->tags()->list();
 
         $this->assertIsArray($result);
         $this->assertSame(true, $result['ok']);

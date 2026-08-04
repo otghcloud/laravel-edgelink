@@ -6,6 +6,9 @@ A full featured Laravel client for Advantech Edgelink compatible devices
 (for example ADAM-3600 RTU), implementing the REST API specification
 published by Advantech.
 
+The package now exposes a canonical endpoint API surface only.
+Legacy alias helper methods for tags and IO have been removed.
+
 ## Installation
 
 ```bash
