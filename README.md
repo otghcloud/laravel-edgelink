@@ -70,9 +70,9 @@ You can create clients directly with runtime connection details when you need to
 use OTGH\LaravelEdgelink\LaravelEdgelinkClient;
 
 $client = LaravelEdgelinkClient::make(
-	baseUrl: 'https://10.5.1.60',
+	baseUrl: 'https://192.168.1.10',
 	password: 'rtu-password',
-	referer: 'https://10.5.1.60',
+	referer: 'https://192.168.1.10',
 	verifyTls: false,
 	timeoutSeconds: 10,
 );
