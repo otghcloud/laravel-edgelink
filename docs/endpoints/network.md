@@ -4,8 +4,22 @@ Class: `NetworkEndpoint`
 
 ## Canonical Methods
 
-- `read(string $segment, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null)`
-- `write(string $segment, string $path, array $payload, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null, ?string $target = null, string $method = 'PUT')`
+- `read(`
+  `string $segment,`
+  `?bool $raw = null,`
+  `?string $responseMode = null,`
+  `?bool $debug = null`
+  `)`
+- `write(`
+  `string $segment,`
+  `string $path,`
+  `array $payload,`
+  `?bool $raw = null,`
+  `?string $responseMode = null,`
+  `?bool $debug = null,`
+  `?string $target = null,`
+  `string $method = 'PUT'`
+  `)`
 
 Supported segment values:
 

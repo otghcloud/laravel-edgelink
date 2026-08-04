@@ -188,23 +188,11 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
 
-      - name: Build tag message from PR
-        env:
-          NEW_VERSION: ${{ needs.bump.outputs.version }}
-          PR_TITLE: ${{ needs.bump.outputs.pr_title }}
-          PR_BODY: ${{ needs.bump.outputs.pr_body }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          {
-            printf '# v%s - %s\n\n' "${NEW_VERSION}" "${PR_TITLE}"
-            printf '%s\n' "${PR_BODY}"
-          } > tag_message.txt
-
       - name: Create and push version tag
         id: push_tag
         env:
           NEW_VERSION: ${{ needs.bump.outputs.version }}
+          PR_TITLE: ${{ needs.bump.outputs.pr_title }}
         shell: bash
         run: |
           set -euo pipefail
@@ -214,7 +202,7 @@ jobs:
             exit 0
           fi
 
-          git tag -a "v${NEW_VERSION}" -F tag_message.txt
+          git tag -a "v${NEW_VERSION}" -m "v${NEW_VERSION} - ${PR_TITLE}"
           git push origin "v${NEW_VERSION}"
 
       - name: Create GitHub release
@@ -224,15 +212,7 @@ jobs:
         with:
           tag_name: v${{ needs.bump.outputs.version }}
           name: v${{ needs.bump.outputs.version }} - ${{ needs.bump.outputs.pr_title }}
-          body_path: tag_message.txt
           generate_release_notes: true
-
-      - name: Upload release artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: release-artifacts
-          path: tag_message.txt
-          retention-days: 28
 
   notify_packagist:
     name: release:packagist

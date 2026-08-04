@@ -4,7 +4,12 @@ Class: `DataLoggerEndpoint`
 
 ## Methods
 
-- `query(array $payload = [], ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null)`
+- `query(`
+  `array $payload = [],`
+  `?bool $raw = null,`
+  `?string $responseMode = null,`
+  `?bool $debug = null`
+  `)`
 
 ## Notes
 

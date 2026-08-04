@@ -4,8 +4,23 @@ Class: `IoEndpoint`
 
 ## Canonical Methods
 
-- `read(string $type, int $slot, ?int $channel = null, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null)`
-- `write(string $type, int $slot, int $channel, int|float|string|bool $value, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null)`
+- `read(`
+  `string $type,`
+  `int $slot,`
+  `?int $channel = null,`
+  `?bool $raw = null,`
+  `?string $responseMode = null,`
+  `?bool $debug = null`
+  `)`
+- `write(`
+  `string $type,`
+  `int $slot,`
+  `int $channel,`
+  `int|float|string|bool $value,`
+  `?bool $raw = null,`
+  `?string $responseMode = null,`
+  `?bool $debug = null`
+  `)`
 
 Supported `type` values:
 

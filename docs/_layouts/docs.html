@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% if page.title %}{{ page.title }} | {% endif %}{{ site.title }}</title>
+    <meta name="description" content="{{ site.description }}">
+    <link rel="stylesheet" href="{{ '/assets/docs.css' | relative_url }}">
+  </head>
+  <body>
+    <div class="docs-shell">
+      <aside class="docs-sidebar">
+        <a class="brand" href="{{ '/index.html' | relative_url }}" aria-label="Laravel Edgelink Docs home">
+          <img src="https://otgh-static-assets.s3.otgh.cloud/branding/logos/otgh_cloud_2024.png" alt="OTGH Cloud" width="180" loading="lazy">
+          <span>Laravel Edgelink Docs</span>
+        </a>
+
+        <nav aria-label="Documentation">
+          <h2>Getting Started</h2>
+          <ul>
+            <li><a href="{{ '/index.html' | relative_url }}">Overview</a></li>
+            <li><a href="{{ '/installation.html' | relative_url }}">Installation</a></li>
+            <li><a href="{{ '/configuration.html' | relative_url }}">Configuration</a></li>
+            <li><a href="{{ '/usage-examples.html' | relative_url }}">Usage Examples</a></li>
+          </ul>
+
+          <h2>Endpoints</h2>
+          <ul>
+            <li><a href="{{ '/endpoints/index.html' | relative_url }}">Endpoint Index</a></li>
+            <li><a href="{{ '/endpoints/authentication.html' | relative_url }}">Authentication</a></li>
+            <li><a href="{{ '/endpoints/tags.html' | relative_url }}">Tags</a></li>
+            <li><a href="{{ '/endpoints/system.html' | relative_url }}">System</a></li>
+            <li><a href="{{ '/endpoints/io.html' | relative_url }}">IO</a></li>
+            <li><a href="{{ '/endpoints/network.html' | relative_url }}">Network</a></li>
+            <li><a href="{{ '/endpoints/firmware.html' | relative_url }}">Firmware</a></li>
+            <li><a href="{{ '/endpoints/data-logger.html' | relative_url }}">Data Logger</a></li>
+            <li><a href="{{ '/endpoints/logs.html' | relative_url }}">Logs</a></li>
+          </ul>
+
+          <h2>Project</h2>
+          <ul>
+            <li><a href="{{ site.repository_url }}">Repository Root</a></li>
+            <li><a href="{{ site.repository_url }}/blob/main/DEVELOPMENT.md">Development Guide</a></li>
+          </ul>
+        </nav>
+      </aside>
+
+      <main class="docs-content" id="content">
+        {{ content }}
+      </main>
+    </div>
+  </body>
+</html>
