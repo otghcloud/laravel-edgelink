@@ -2,6 +2,7 @@
 
 namespace OTGH\LaravelEdgelink;
 
+use Illuminate\Http\Client\RequestException as HttpRequestException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -13,7 +14,10 @@ use OTGH\LaravelEdgelink\Endpoints\LogsEndpoint;
 use OTGH\LaravelEdgelink\Endpoints\NetworkEndpoint;
 use OTGH\LaravelEdgelink\Endpoints\SystemEndpoint;
 use OTGH\LaravelEdgelink\Endpoints\TagsEndpoint;
-use RuntimeException;
+use OTGH\LaravelEdgelink\Exceptions\AuthenticationException;
+use OTGH\LaravelEdgelink\Exceptions\ConfigurationException;
+use OTGH\LaravelEdgelink\Exceptions\RequestException;
+use OTGH\LaravelEdgelink\Exceptions\SessionException;
 
 class LaravelEdgelinkClient
 {
@@ -154,15 +158,18 @@ class LaravelEdgelinkClient
     {
         $this->assertConfigured();
 
-        $response = $this->baseRequest()
-            ->put('/sys/log_in', ['password' => $password]);
+        $response = $this->baseRequest()->put('/sys/log_in', ['password' => $password]);
 
-        $response->throw();
+        try {
+            $response->throw();
+        } catch (HttpRequestException $e) {
+            throw RequestException::fromHttpClient('PUT', '/sys/log_in', $e);
+        }
 
         $sessionId = $this->extractSessionId($response);
 
         if (! $sessionId) {
-            throw new RuntimeException('Unable to get SID from login response.');
+            throw new AuthenticationException('Unable to get SID from login response.');
         }
 
         $this->sessionId = $sessionId;
@@ -177,10 +184,14 @@ class LaravelEdgelinkClient
 
     public function performLogout(): array|string|null
     {
-        $response = $this->authenticatedRequest()
-            ->put('/sys/log_out');
+        $response = $this->authenticatedRequest()->put('/sys/log_out');
 
-        $response->throw();
+        try {
+            $response->throw();
+        } catch (HttpRequestException $e) {
+            throw RequestException::fromHttpClient('PUT', '/sys/log_out', $e);
+        }
+
         $this->sessionId = null;
 
         return $response->json() ?? $response->body();
@@ -233,19 +244,45 @@ class LaravelEdgelinkClient
             'PATCH' => $request->patch($normalizedPath, $data),
             'POST' => $request->post($normalizedPath, $data),
             'DELETE' => $request->delete($normalizedPath, $data),
-            default => throw new RuntimeException('Unsupported HTTP method: '.$method),
+            default => throw RequestException::unsupportedMethod($method),
         };
 
-        $response->throw();
+        try {
+            $response->throw();
+        } catch (HttpRequestException $e) {
+            throw RequestException::fromHttpClient($method, $normalizedPath, $e);
+        }
 
         return $response;
     }
 
+    public function isAuthenticated(): bool
+    {
+        return $this->sessionId !== null && $this->sessionId !== '';
+    }
+
+    public function ensureAuthenticated(): void
+    {
+        if ($this->isAuthenticated()) {
+            return;
+        }
+
+        try {
+            $this->login();
+        } catch (AuthenticationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            throw new AuthenticationException('Unable to authenticate before request.', 0, $e);
+        }
+
+        if (! $this->isAuthenticated()) {
+            throw new SessionException('No valid session is available for authenticated request.');
+        }
+    }
+
     protected function authenticatedRequest(): PendingRequest
     {
-        if (! $this->sessionId) {
-            $this->login();
-        }
+        $this->ensureAuthenticated();
 
         return $this->baseRequest()->withHeaders([
             'Cookie' => 'SID='.$this->sessionId.'; ADAMSID='.$this->sessionId,
@@ -255,7 +292,6 @@ class LaravelEdgelinkClient
     protected function baseRequest(): PendingRequest
     {
         $request = Http::acceptJson()
-            ->asJson()
             ->baseUrl($this->baseUrl)
             ->timeout($this->timeoutSeconds)
             ->withHeaders([
@@ -273,11 +309,11 @@ class LaravelEdgelinkClient
     protected function assertConfigured(): void
     {
         if ($this->baseUrl === '') {
-            throw new RuntimeException('ADAM RTU base URL is not configured.');
+            throw new ConfigurationException('ADAM RTU base URL is not configured.');
         }
 
         if ($this->password === '') {
-            throw new RuntimeException('ADAM RTU password is not configured.');
+            throw new ConfigurationException('ADAM RTU password is not configured.');
         }
     }
 

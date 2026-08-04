@@ -3,8 +3,10 @@
 namespace Tests\Unit;
 
 use Illuminate\Support\Facades\Http;
+use OTGH\LaravelEdgelink\Exceptions\AuthenticationException;
+use OTGH\LaravelEdgelink\Exceptions\RequestException;
+use OTGH\LaravelEdgelink\Exceptions\ResponseModeException;
 use OTGH\LaravelEdgelink\LaravelEdgelinkClient;
-use RuntimeException;
 use Tests\TestCase;
 
 class LaravelEdgelinkEndpointsTest extends TestCase
@@ -38,7 +40,9 @@ class LaravelEdgelinkEndpointsTest extends TestCase
     public function test_system_endpoint_wrappers_call_expected_paths(): void
     {
         Http::fake([
-            'https://rtu.local/sys/version' => Http::response(['v' => '2.0'], 200),
+            'https://rtu.local/sys/version' => Http::response([
+                'v' => 'ADAM-3600-C2GL1A1E Standard Edition image version 2.0 Release Jan 01 2024',
+            ], 200),
             'https://rtu.local/sys/update_info' => Http::response(['state' => 'idle'], 200),
             'https://rtu.local/sys/control/rst' => Http::response(['message' => 'restart'], 200),
             'https://rtu.local/sys/control' => Http::response(['message' => 'control'], 200),
@@ -50,13 +54,115 @@ class LaravelEdgelinkEndpointsTest extends TestCase
         $client = LaravelEdgelinkClient::make('https://rtu.local', 'x', 'https://rtu.local', true);
         $client->setSessionId('sid-123');
 
-        $this->assertSame(['v' => '2.0'], $client->system()->version());
+        $this->assertSame([
+            'version' => '2.0',
+            'released' => 'Jan 01 2024',
+            'released_at' => '2024-01-01',
+        ], $client->system()->version());
         $this->assertSame(['state' => 'idle'], $client->system()->updateInfo());
         $this->assertSame(['message' => 'restart'], $client->system()->restart());
         $this->assertSame(['message' => 'control'], $client->system()->control(['mode' => 'x']));
         $this->assertSame(['message' => 'cali'], $client->system()->calibration(['target' => 'ai']));
         $this->assertSame(['http_port' => 443], $client->system()->webSettings());
         $this->assertSame(['slot' => 0], $client->system()->deviceInfo());
+    }
+
+    public function test_system_version_normalizes_local_version_key(): void
+    {
+        Http::fake([
+            'https://rtu.local/sys/version' => Http::response([
+                'Local version' => 'ADAM-3600-C2GL1 Standard Edition image version 2.8.4.5 Release Nov 18 2025',
+            ], 200),
+        ]);
+
+        $client = LaravelEdgelinkClient::make('https://rtu.local', 'x', 'https://rtu.local', true);
+        $client->setSessionId('sid-123');
+
+        $this->assertSame(
+            [
+                'version' => '2.8.4.5',
+                'released' => 'Nov 18 2025',
+                'released_at' => '2025-11-18',
+            ],
+            $client->system()->version(),
+        );
+    }
+
+    public function test_system_version_can_return_raw_response(): void
+    {
+        Http::fake([
+            'https://rtu.local/sys/version' => Http::response([
+                'Local version' => 'ADAM-3600-C2GL1 Standard Edition image version 2.8.4.5 Release Nov 18 2025',
+            ], 200),
+        ]);
+
+        $client = LaravelEdgelinkClient::make('https://rtu.local', 'x', 'https://rtu.local', true);
+        $client->setSessionId('sid-123');
+
+        $this->assertSame(
+            ['Local version' => 'ADAM-3600-C2GL1 Standard Edition image version 2.8.4.5 Release Nov 18 2025'],
+            $client->system()->version(raw: true),
+        );
+    }
+
+    public function test_system_version_can_return_envelope_mode(): void
+    {
+        Http::fake([
+            'https://rtu.local/sys/version' => Http::response([
+                'version' => 'ADAM-3600-C2GL1A1E Standard Edition image version 2.8.0 Release Dec 29 2021',
+            ], 200),
+        ]);
+
+        $client = LaravelEdgelinkClient::make('https://rtu.local', 'x', 'https://rtu.local', true);
+        $client->setSessionId('sid-123');
+
+        $this->assertSame([
+            'ok' => true,
+            'data' => [
+                'version' => '2.8.0',
+                'released' => 'Dec 29 2021',
+                'released_at' => '2021-12-29',
+            ],
+            'error' => null,
+            'meta' => ['source' => '/sys/version'],
+        ], $client->system()->version(responseMode: 'envelope'));
+    }
+
+    public function test_system_version_falls_back_to_legacy_xml_and_normalizes_fields_on_400(): void
+    {
+        Http::fake([
+            'https://rtu.local/sys/version' => Http::response(['error' => 'unsupported'], 400),
+            'https://rtu.local/xml/version.xml' => Http::response(
+                '<Firmware version="ADAM-3600-C2GL1A1E Standard Edition image version 2.8.0 Release Dec 29 2021"/>',
+                200,
+                ['Content-Type' => 'application/xml'],
+            ),
+        ]);
+
+        $client = LaravelEdgelinkClient::make('https://rtu.local', 'x', 'https://rtu.local', true);
+        $client->setSessionId('sid-123');
+
+        $this->assertSame([
+            'version' => '2.8.0',
+            'released' => 'Dec 29 2021',
+            'released_at' => '2021-12-29',
+        ], $client->system()->version());
+    }
+
+    public function test_system_version_invalid_response_mode_throws_exception(): void
+    {
+        Http::fake([
+            'https://rtu.local/sys/version' => Http::response([
+                'version' => 'ADAM-3600-C2GL1A1E Standard Edition image version 2.8.0 Release Dec 29 2021',
+            ], 200),
+        ]);
+
+        $client = LaravelEdgelinkClient::make('https://rtu.local', 'x', 'https://rtu.local', true);
+        $client->setSessionId('sid-123');
+
+        $this->expectException(ResponseModeException::class);
+
+        $client->system()->version(responseMode: 'invalid-mode');
     }
 
     public function test_io_endpoint_wrappers_call_expected_ai_ao_di_do_paths(): void
@@ -227,9 +333,28 @@ class LaravelEdgelinkEndpointsTest extends TestCase
         $client = LaravelEdgelinkClient::make('https://rtu.local', 'x', 'https://rtu.local', true);
         $client->setSessionId('sid-123');
 
-        $this->expectException(RuntimeException::class);
+        $this->expectException(RequestException::class);
         $this->expectExceptionMessage('Unsupported HTTP method: TRACE');
 
         $client->request('TRACE', '/data/tags');
+    }
+
+    public function test_login_throws_authentication_exception_when_session_id_is_missing(): void
+    {
+        Http::fake([
+            'https://rtu.local/sys/log_in' => Http::response(['message' => 'ok'], 200),
+        ]);
+
+        $client = LaravelEdgelinkClient::make(
+            baseUrl: 'https://rtu.local',
+            password: 'secret',
+            referer: 'https://rtu.local',
+            verifyTls: true,
+        );
+
+        $this->expectException(AuthenticationException::class);
+        $this->expectExceptionMessage('Unable to get SID from login response.');
+
+        $client->auth()->login('secret');
     }
 }
