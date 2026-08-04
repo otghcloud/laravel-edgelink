@@ -2,7 +2,7 @@
 
 # Laravel Edgelink Client
 
-A full featured Laravel client for Advantech's Edgelink compatible devices (i.e ADAM-3600 RTU).
+A full featured Laravel client for Advantech's Edgelink compatible devices (i.e ADAM-3600 RTU), implementing the RESTFul API specification [published by Advantech here](https://www.advantech.com/en-us/support/details/software%20api?id=1-1KPLJQG).
 
 ## Features
 
@@ -31,7 +31,7 @@ If you wish to specify a default connection, you can publish the [config file](c
 php artisan vendor:publish --tag="laravel-edgelink-config"
 ```
 
-This creates `config/edgelink.php`, allowing you to define default credentials.
+This creates `config/edgelink.php`, allowing you to define default connection details.
 
 These can of course be changed at runtime (see further below).
 
@@ -47,6 +47,9 @@ return [
 
 ## Usage
 
+By default, the package will use any values from the above configuration file if published.
+
+
 ```php
 use OTGH\LaravelEdgelink\LaravelEdgelinkClient;
 
@@ -59,16 +62,30 @@ $version = $client->system()->version();
 $aiChannel = $client->io()->ai(slot: 0, channel: 2);
 ```
 
-### Runtime Connections (No Config Required)
+You can also pass an array into `fromConfig()` to override any previously defined values.
 
-You can create clients directly with runtime connection details when you need to talk to many RTUs dynamically.
+```php
+use OTGH\LaravelEdgelink\LaravelEdgelinkClient;
+
+$client = LaravelEdgelinkClient::fromConfig([
+	'base_url' => 'https://192.168.1.10',
+	'password' => 'supersecretpassword',
+	'referer' => 'https://192.168.1.10',
+	'verify_tls' => false,
+	'timeout_seconds' => 10,
+]);
+```
+
+### Runtime Connections
+
+Alternatively, you can create clients directly with on-the-fly connection details when you need to talk to many RTUs dynamically.
 
 ```php
 use OTGH\LaravelEdgelink\LaravelEdgelinkClient;
 
 $client = LaravelEdgelinkClient::make(
 	baseUrl: 'https://192.168.1.10',
-	password: 'rtu-password',
+	password: 'supersecretpassword',
 	referer: 'https://192.168.1.10',
 	verifyTls: false,
 	timeoutSeconds: 10,
@@ -76,20 +93,7 @@ $client = LaravelEdgelinkClient::make(
 
 $client->login();
 $tags = $client->getTags();
-```
-
-You can also pass a runtime array into `fromConfig()`.
-
-```php
-use OTGH\LaravelEdgelink\LaravelEdgelinkClient;
-
-$client = LaravelEdgelinkClient::fromConfig([
-	'base_url' => 'https://10.5.1.60',
-	'password' => 'rtu-password',
-	'referer' => 'https://10.5.1.60',
-	'verify_tls' => false,
-	'timeout_seconds' => 10,
-]);
+dump($tags);
 ```
 
 Example with multiple RTUs in one job/request:
@@ -97,26 +101,35 @@ Example with multiple RTUs in one job/request:
 ```php
 use OTGH\LaravelEdgelink\LaravelEdgelinkClient;
 
-$rtus = [
-	['host' => '10.5.1.60', 'password' => 'foo'],
-	['host' => '10.5.1.61', 'password' => 'bar'],
+$targets = [
+	['host' => 'https://192.168.1.10', 'password' => 'foo'],
+	['host' => 'https://192.168.1.11', 'password' => 'bar'],
 ];
 
-foreach ($rtus as $rtu) {
-	$baseUrl = 'https://'.$rtu['host'];
+foreach ($targets as $target) {
 
 	$client = LaravelEdgelinkClient::make(
-		baseUrl: $baseUrl,
-		password: $rtu['password'],
-		referer: $baseUrl,
+		baseUrl: $target['host'],
+		password: $target['password'],
+		referer: $target['host'],
 		verifyTls: false,
 		timeoutSeconds: 10,
 	);
 
-	$tag = $client->getTag('Slot1:DI_5_SD_LockStatus');
-	// Handle each RTU result here.
+	$tags = $client->getTags();
+	dump($tags);
+
 }
 ```
+
+## Compatbility / Requirements
+
+The minimum environment requirements are as below:
+
+- Laravel 13+
+- PHP 8.3+
+
+Our testing has been done on ADAM-3600 units from firmware versions 2.8.0 to 2.8.4.6.
 
 ## License
 
