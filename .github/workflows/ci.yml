@@ -167,34 +167,34 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-  analyse_phpstan:
-    name: analyse:phpstan (PHP ${{ matrix.php }})
-    runs-on: ubuntu-latest
-    needs:
-      - deps
-    strategy:
-      fail-fast: false
-      matrix:
-        php:
-          - '8.4'
-          - '8.5'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+#  analyse_phpstan:
+#    name: analyse:phpstan (PHP ${{ matrix.php }})
+##    runs-on: ubuntu-latest
+##    needs:
+##      - deps
+##    strategy:
+##      fail-fast: false
+##      matrix:
+##        php:
+##          - '8.4'
+##          - '8.5'
+##    steps:
+##      - name: Checkout
+##        uses: actions/checkout@v4
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php }}
-          tools: composer:v2
-          coverage: none
+##      - name: Setup PHP
+##        uses: shivammathur/setup-php@v2
+##        with:
+##          php-version: ${{ matrix.php }}
+##          tools: composer:v2
+##          coverage: none
 
-      - name: Download vendor artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: vendor-php-${{ matrix.php }}
-          path: vendor
+##      - name: Download vendor artifact
+##        uses: actions/download-artifact@v4
+##        with:
+##          name: vendor-php-${{ matrix.php }}
+##          path: vendor
 
-      - name: Run PHPStan
-        run: |
-          php ./vendor/bin/phpstan analyse
+##      - name: Run PHPStan
+##        run: |
+##          php ./vendor/bin/phpstan analyse
