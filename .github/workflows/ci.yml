@@ -108,7 +108,8 @@ jobs:
           path: vendor
 
       - name: Run PHPStan
-        run: composer analyse
+        run: | 
+          composer analyse
 
   test_phpunit:
     name: test:phpunit (PHP ${{ matrix.php }})
