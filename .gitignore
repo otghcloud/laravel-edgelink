@@ -27,11 +27,11 @@ _ide_helper_models.php
 # Misc
 phpstan.neon
 testbench.yaml
-/docs
 /coverage
 /bootstrap/*
 !/bootstrap/.gitignore
 !/bootstrap/cache/
 /bootstrap/cache/*
 !/bootstrap/cache/.gitignore
-/develop
+/development/config.php
+/local

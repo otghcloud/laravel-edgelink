@@ -2,8 +2,8 @@
 
 namespace OTGH\LaravelEdgelink;
 
-use Illuminate\Http\Client\RequestException as HttpRequestException;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\RequestException as HttpRequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use OTGH\LaravelEdgelink\Endpoints\AuthEndpoint;
@@ -21,6 +21,11 @@ use OTGH\LaravelEdgelink\Exceptions\SessionException;
 
 class LaravelEdgelinkClient
 {
+    /**
+     * @var array<int, array<string, mixed>>
+     */
+    protected array $debugHistory = [];
+
     protected ?string $sessionId = null;
 
     protected AuthEndpoint $authEndpoint;
@@ -45,6 +50,13 @@ class LaravelEdgelinkClient
         protected ?string $referer = null,
         protected bool $verifyTls = false,
         protected int $timeoutSeconds = 10,
+        protected string $responseMode = 'data',
+        protected bool $rawResponse = false,
+        protected bool $debugEnabled = false,
+        protected bool $debugRequestHeaders = true,
+        protected bool $debugRequestBody = true,
+        protected bool $debugResponseHeaders = true,
+        protected bool $debugResponseBody = true,
     ) {
         $this->authEndpoint = new AuthEndpoint($this);
         $this->tagsEndpoint = new TagsEndpoint($this);
@@ -64,8 +76,15 @@ class LaravelEdgelinkClient
             baseUrl: rtrim((string) ($config['base_url'] ?? ''), '/'),
             password: (string) ($config['password'] ?? ''),
             referer: $config['referer'] ?? null,
-            verifyTls: (bool) ($config['verify_tls'] ?? false),
+            verifyTls: self::toBool($config['verify_tls'] ?? false),
             timeoutSeconds: (int) ($config['timeout_seconds'] ?? 10),
+            responseMode: (string) ($config['response_mode'] ?? 'data'),
+            rawResponse: self::toBool($config['raw_response'] ?? false),
+            debugEnabled: self::toBool($config['debug_enabled'] ?? false),
+            debugRequestHeaders: self::toBool($config['debug_request_headers'] ?? true, true),
+            debugRequestBody: self::toBool($config['debug_request_body'] ?? true, true),
+            debugResponseHeaders: self::toBool($config['debug_response_headers'] ?? true, true),
+            debugResponseBody: self::toBool($config['debug_response_body'] ?? true, true),
         );
     }
 
@@ -75,6 +94,13 @@ class LaravelEdgelinkClient
         ?string $referer = null,
         bool $verifyTls = false,
         int $timeoutSeconds = 10,
+        string $responseMode = 'data',
+        bool $rawResponse = false,
+        bool $debugEnabled = false,
+        bool $debugRequestHeaders = true,
+        bool $debugRequestBody = true,
+        bool $debugResponseHeaders = true,
+        bool $debugResponseBody = true,
     ): static {
         return new static(
             baseUrl: rtrim($baseUrl, '/'),
@@ -82,6 +108,13 @@ class LaravelEdgelinkClient
             referer: $referer,
             verifyTls: $verifyTls,
             timeoutSeconds: $timeoutSeconds,
+            responseMode: $responseMode,
+            rawResponse: $rawResponse,
+            debugEnabled: $debugEnabled,
+            debugRequestHeaders: $debugRequestHeaders,
+            debugRequestBody: $debugRequestBody,
+            debugResponseHeaders: $debugResponseHeaders,
+            debugResponseBody: $debugResponseBody,
         );
     }
 
@@ -98,8 +131,28 @@ class LaravelEdgelinkClient
             'referer' => $this->referer,
             'verify_tls' => $this->verifyTls,
             'timeout_seconds' => $this->timeoutSeconds,
+            'response_mode' => $this->responseMode,
+            'raw_response' => $this->rawResponse,
+            'debug_enabled' => $this->debugEnabled,
+            'debug_request_headers' => $this->debugRequestHeaders,
+            'debug_request_body' => $this->debugRequestBody,
+            'debug_response_headers' => $this->debugResponseHeaders,
+            'debug_response_body' => $this->debugResponseBody,
             default => $default,
         };
+    }
+
+    public function beginDebugTrace(): int
+    {
+        return count($this->debugHistory);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function collectDebugTrace(int $fromIndex = 0): array
+    {
+        return array_slice($this->debugHistory, max(0, $fromIndex));
     }
 
     public function auth(): AuthEndpoint
@@ -235,6 +288,7 @@ class LaravelEdgelinkClient
     {
         $request = $requiresAuth ? $this->authenticatedRequest() : $this->baseRequest();
         $normalizedPath = $this->normalizePath($path);
+        $requestHeaders = $this->buildDebugRequestHeaders($requiresAuth);
 
         $method = strtoupper($method);
 
@@ -246,6 +300,14 @@ class LaravelEdgelinkClient
             'DELETE' => $request->delete($normalizedPath, $data),
             default => throw RequestException::unsupportedMethod($method),
         };
+
+        $this->recordDebugExchange(
+            method: $method,
+            path: $normalizedPath,
+            requestHeaders: $requestHeaders,
+            requestBody: $data,
+            response: $response,
+        );
 
         try {
             $response->throw();
@@ -345,5 +407,82 @@ class LaravelEdgelinkClient
         }
 
         return null;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function buildDebugRequestHeaders(bool $requiresAuth): array
+    {
+        $headers = [
+            'Accept' => 'application/json',
+            'Content-Type' => 'application/json',
+            'Referer' => $this->referer ?? $this->baseUrl.'/',
+        ];
+
+        if ($requiresAuth && $this->sessionId !== null && $this->sessionId !== '') {
+            $headers['Cookie'] = 'SID='.$this->sessionId.'; ADAMSID='.$this->sessionId;
+        }
+
+        return $headers;
+    }
+
+    protected function recordDebugExchange(
+        string $method,
+        string $path,
+        array $requestHeaders,
+        array $requestBody,
+        Response $response,
+    ): void {
+        $this->debugHistory[] = [
+            'request' => [
+                'method' => $method,
+                'path' => $path,
+                'headers' => $requestHeaders,
+                'body' => $requestBody,
+            ],
+            'response' => [
+                'status' => $response->status(),
+                'headers' => $response->headers(),
+                'body' => $response->json() ?? $response->body(),
+            ],
+        ];
+
+        if (count($this->debugHistory) > 200) {
+            $this->debugHistory = array_slice($this->debugHistory, -200);
+        }
+    }
+
+    protected static function toBool(mixed $value, bool $default = false): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if ($value === null) {
+            return $default;
+        }
+
+        if (is_int($value) || is_float($value)) {
+            return (bool) $value;
+        }
+
+        if (is_string($value)) {
+            $normalized = strtolower(trim($value));
+
+            if ($normalized === '') {
+                return $default;
+            }
+
+            if (in_array($normalized, ['1', 'true', 'yes', 'on'], true)) {
+                return true;
+            }
+
+            if (in_array($normalized, ['0', 'false', 'no', 'off'], true)) {
+                return false;
+            }
+        }
+
+        return (bool) $value;
     }
 }
