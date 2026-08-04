@@ -154,7 +154,7 @@ jobs:
 
       - name: Discover package for Testbench
         run: |
-          php ./vendor/bin/testbench package:discover --ansi
+          php ./vendor/bin/testbench package:discover --no-ansi
 
       - name: Run PHPUnit with JUnit output
         run: | 
