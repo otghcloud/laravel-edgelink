@@ -146,27 +146,27 @@ jobs:
           path: CHANGELOG.md
           retention-days: 28
 
-  notify_packagist:
-    name: release:packagist
-    runs-on: ubuntu-latest
-    needs:
-      - create_release
-    if: ${{ always() && needs.create_release.result == 'success' }}
-    steps:
-      - name: Notify Packagist
-        env:
-          PACKAGIST_TOKEN: ${{ secrets.PACKAGIST_TOKEN }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ -z "${PACKAGIST_TOKEN:-}" ]]; then
-            echo "PACKAGIST_TOKEN is required to notify Packagist."
-            exit 1
-          fi
+#  notify_packagist:
+#    name: release:packagist
+#    runs-on: ubuntu-latest
+#    needs:
+#      - create_release
+#    if: ${{ always() && needs.create_release.result == 'success' }}
+#    steps:
+#      - name: Notify Packagist
+#        env:
+#          PACKAGIST_TOKEN: ${{ secrets.PACKAGIST_TOKEN }}
+#        shell: bash
+#        run: |
+#          set -euo pipefail
+#          if [[ -z "${PACKAGIST_TOKEN:-}" ]]; then
+#            echo "PACKAGIST_TOKEN is required to notify Packagist."
+#            exit 1
+#          fi
 
-          curl --silent --show-error --fail \
-            --request POST \
-            --header "Content-Type: application/json" \
-            --header "Authorization: Bearer otghcloud:${PACKAGIST_TOKEN}" \
-            --url "https://packagist.org/api/update-package" \
-            --data '{"repository":"https://packagist.org/otghcloud/laravel-edgelink"}'
+#          curl --silent --show-error --fail \
+#            --request POST \
+#            --header "Content-Type: application/json" \
+#            --header "Authorization: Bearer otghcloud:${PACKAGIST_TOKEN}" \
+#            --url "https://packagist.org/api/update-package" \
+#            --data '{"repository":"https://packagist.org/otghcloud/laravel-edgelink"}'
