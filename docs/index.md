@@ -35,8 +35,12 @@ $tags = $client->tags()->list();
 - [Configuration](configuration.md)
 - [Usage Examples](usage-examples.md)
 - [Endpoint Reference](endpoints/index.md)
+- [Compatibility Matrix](compatibility.md)
+- [Error Handling](error-handling.md)
 
 ## Related Guides
 
-- [Development Guide](../DEVELOPMENT.md)
-- [Project README](../README.md)
+- [Development Guide](https://github.com/otghcloud/laravel-edgelink/blob/main/DEVELOPMENT.md)
+- [Project README](https://github.com/otghcloud/laravel-edgelink/blob/main/README.md)
+- [Changelog](changelog.md)
+- [Security Policy](security.md)

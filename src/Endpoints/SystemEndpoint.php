@@ -12,8 +12,21 @@ class SystemEndpoint
 {
     use FormatsEndpointResponses;
 
+    /**
+     * Create a new system endpoint wrapper.
+     */
     public function __construct(protected LaravelEdgelinkClient $client) {}
 
+    /**
+     * Read and normalize firmware version details.
+     *
+     * Falls back to legacy /xml/version.xml for devices that reject /sys/version.
+     *
+     * @param  ?bool  $raw  Return raw payload when true.
+     * @param  ?string  $responseMode  Response mode override: data or envelope.
+     * @param  ?bool  $debug  Include debug trace when true.
+     * @return array|string|null Normalized, enveloped, or raw response payload.
+     */
     public function version(?bool $raw = null, ?string $responseMode = null, ?bool $debug = null): array|string|null
     {
         $traceStart = $this->client->beginDebugTrace();
@@ -31,26 +44,28 @@ class SystemEndpoint
             );
         } catch (RequestException $e) {
             if (in_array($e->statusCode(), [400, 500], true)) {
-                try {
-                    $legacyResponse = $this->client->requestBody('GET', '/xml/version.xml');
+                $legacyResponse = $this->client->requestBody('GET', '/xml/version.xml');
 
-                    return $this->formatVersionResponse(
-                        response: $legacyResponse,
-                        raw: $raw,
-                        responseMode: $responseMode,
-                        source: '/xml/version.xml',
-                        debug: $debug,
-                        exchanges: $this->client->collectDebugTrace($traceStart),
-                    );
-                } catch (RequestException $legacyException) {
-                    throw $legacyException;
-                }
+                return $this->formatVersionResponse(
+                    response: $legacyResponse,
+                    raw: $raw,
+                    responseMode: $responseMode,
+                    source: '/xml/version.xml',
+                    debug: $debug,
+                    exchanges: $this->client->collectDebugTrace($traceStart),
+                );
             }
 
             throw $e;
         }
     }
 
+    /**
+     * Extract firmware descriptor from legacy XML responses.
+     *
+     * @param  string  $xml  XML payload from /xml/version.xml.
+     * @return ?string Legacy firmware descriptor string.
+     */
     protected function extractLegacyFirmwareVersion(string $xml): ?string
     {
         $previousUseInternalErrors = libxml_use_internal_errors(true);
@@ -71,6 +86,11 @@ class SystemEndpoint
         }
     }
 
+    /**
+     * Normalize and format version responses in either data or envelope mode.
+     *
+     * @param  array<int, array<string, mixed>>  $exchanges
+     */
     protected function formatVersionResponse(
         array|string|null $response,
         ?bool $raw,
@@ -93,6 +113,8 @@ class SystemEndpoint
     }
 
     /**
+     * Extract normalized semantic version fields from version payloads.
+     *
      * @return array{version:string,released:?string,released_at:?string}
      */
     protected function normalizeVersionPayload(array|string|null $response, string $source): array
@@ -103,6 +125,8 @@ class SystemEndpoint
     }
 
     /**
+     * Parse semantic version and release date from firmware descriptor text.
+     *
      * @return array{version:string,released:?string,released_at:?string}
      */
     protected function extractVersionDetails(string $descriptor): array
@@ -131,6 +155,9 @@ class SystemEndpoint
         ];
     }
 
+    /**
+     * Normalize firmware descriptor from API or legacy XML responses.
+     */
     protected function extractNormalizedFirmwareDescriptor(array|string|null $response, string $source): string
     {
         if (is_array($response)) {
@@ -157,6 +184,11 @@ class SystemEndpoint
         throw new ResponseTransformationException('Unable to normalize firmware version response.');
     }
 
+    /**
+     * Read update status information.
+     *
+     * @return array|string|null Normalized, enveloped, or raw response payload.
+     */
     public function updateInfo(?bool $raw = null, ?string $responseMode = null, ?bool $debug = null): array|string|null
     {
         return $this->requestAndFormat(
@@ -170,6 +202,11 @@ class SystemEndpoint
         );
     }
 
+    /**
+     * Trigger device restart with optional token handshake flow.
+     *
+     * @return array|string|null Normalized, enveloped, or raw response payload.
+     */
     public function restart(?bool $raw = null, ?string $responseMode = null, ?bool $debug = null): array|string|null
     {
         $traceStart = $this->client->beginDebugTrace();
@@ -208,6 +245,12 @@ class SystemEndpoint
         );
     }
 
+    /**
+     * Send system control mutation payload.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array|string|null Normalized, enveloped, or raw response payload.
+     */
     public function control(array $payload, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null): array|string|null
     {
         return $this->requestAndFormat(
@@ -222,6 +265,12 @@ class SystemEndpoint
         );
     }
 
+    /**
+     * Send system calibration payload.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array|string|null Normalized, enveloped, or raw response payload.
+     */
     public function calibration(array $payload, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null): array|string|null
     {
         return $this->requestAndFormat(
@@ -236,6 +285,11 @@ class SystemEndpoint
         );
     }
 
+    /**
+     * Read web settings.
+     *
+     * @return array|string|null Normalized, enveloped, or raw response payload.
+     */
     public function webSettings(?bool $raw = null, ?string $responseMode = null, ?bool $debug = null): array|string|null
     {
         return $this->requestAndFormat(
@@ -249,6 +303,12 @@ class SystemEndpoint
         );
     }
 
+    /**
+     * Update web settings.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array|string|null Normalized, enveloped, or raw response payload.
+     */
     public function updateWebSettings(array $payload, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null): array|string|null
     {
         return $this->requestAndFormat(
@@ -263,6 +323,12 @@ class SystemEndpoint
         );
     }
 
+    /**
+     * Read device info for a specific slot.
+     *
+     * @param  int  $slot  Device info slot index.
+     * @return array|string|null Normalized, enveloped, or raw response payload.
+     */
     public function deviceInfo(int $slot = 0, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null): array|string|null
     {
         $path = '/data/device_info/slot_'.$slot;
@@ -278,6 +344,13 @@ class SystemEndpoint
         );
     }
 
+    /**
+     * Update device info for a specific slot.
+     *
+     * @param  int  $slot  Device info slot index.
+     * @param  array<string, mixed>  $payload
+     * @return array|string|null Normalized, enveloped, or raw response payload.
+     */
     public function updateDeviceInfo(int $slot, array $payload, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null): array|string|null
     {
         $path = '/data/device_info/slot_'.$slot;
@@ -295,6 +368,8 @@ class SystemEndpoint
     }
 
     /**
+     * Normalize read-style system responses.
+     *
      * @param  array<string, mixed>  $extra
      * @return array<string, mixed>
      */
@@ -308,6 +383,8 @@ class SystemEndpoint
     }
 
     /**
+     * Normalize write-style system responses.
+     *
      * @param  array<string, mixed>  $payload
      * @param  array<string, mixed>  $extra
      * @return array<string, mixed>

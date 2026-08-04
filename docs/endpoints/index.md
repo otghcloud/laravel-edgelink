@@ -1,5 +1,7 @@
 # Endpoint Reference
 
+All endpoint examples in this section use canonical methods only.
+
 Each endpoint is accessible from the client instance.
 
 ```php

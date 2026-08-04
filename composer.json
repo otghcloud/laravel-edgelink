@@ -1,10 +1,16 @@
 {
     "name": "otghcloud/laravel-edgelink",
+    "type": "library",
     "description": "Laravel package for Advantech/Edgelink ADAM RTU REST API integration.",
     "keywords": [
         "otghcloud",
         "laravel",
-        "laravel-edgelink"
+        "laravel-edgelink",
+        "advantech",
+        "edgelink",
+        "adam-3600",
+        "rtu",
+        "rest-api"
     ],
     "homepage": "https://github.com/otghcloud/laravel-edgelink",
     "license": "MIT",
@@ -44,9 +50,9 @@
     "scripts": {
         "post-autoload-dump": "@composer run prepare",
         "prepare": "@php vendor/bin/testbench package:discover --ansi",
-        "analyse": "vendor/bin/phpstan analyse",
+        "analyse": "@php vendor/bin/phpstan analyse src",
         "test": "vendor/bin/phpunit",
-        "test-coverage": "vendor/bin/phpunit --coverage-text",
+        "test-coverage": "XDEBUG_MODE=coverage vendor/bin/phpunit --coverage-clover coverage.xml --coverage-text",
         "format": "vendor/bin/pint",
         "rtu:cli": "php development/rtu-cli.php",
         "rtu:probe": "php development/rtu-cli.php probe"
@@ -67,6 +73,6 @@
             }
         }
     },
-    "minimum-stability": "dev",
+    "minimum-stability": "stable",
     "prefer-stable": true
 }

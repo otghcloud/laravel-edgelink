@@ -9,8 +9,16 @@ class LogsEndpoint
 {
     use FormatsEndpointResponses;
 
+    /**
+     * Create a new logs endpoint wrapper.
+     */
     public function __construct(protected LaravelEdgelinkClient $client) {}
 
+    /**
+     * Request log file creation/export from the RTU.
+     *
+     * @return array|string|null Normalized, enveloped, or raw response payload.
+     */
     public function create(?bool $raw = null, ?string $responseMode = null, ?bool $debug = null): array|string|null
     {
         return $this->requestAndFormat(
@@ -24,6 +32,12 @@ class LogsEndpoint
         );
     }
 
+    /**
+     * Submit an explicit log message payload to the RTU.
+     *
+     * @param  array<string, mixed>  $payload  Log message payload.
+     * @return array|string|null Normalized, enveloped, or raw response payload.
+     */
     public function message(array $payload, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null): array|string|null
     {
         return $this->requestAndFormat(
@@ -39,6 +53,8 @@ class LogsEndpoint
     }
 
     /**
+     * Normalize log action responses.
+     *
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */

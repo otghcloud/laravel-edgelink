@@ -9,13 +9,19 @@ class TagsEndpoint
 {
     use FormatsEndpointResponses;
 
+    /**
+     * Create a new tags endpoint wrapper.
+     */
     public function __construct(protected LaravelEdgelinkClient $client) {}
 
-    public function all(?bool $raw = null, ?string $responseMode = null, ?bool $debug = null): array|string|null
-    {
-        return $this->list($raw, $responseMode, $debug);
-    }
-
+    /**
+     * Read the full tags collection.
+     *
+     * @param  ?bool  $raw  Return raw payload when true.
+     * @param  ?string  $responseMode  Response mode override: data or envelope.
+     * @param  ?bool  $debug  Include debug trace when true.
+     * @return array|string|null Normalized, enveloped, or raw response payload.
+     */
     public function list(?bool $raw = null, ?string $responseMode = null, ?bool $debug = null): array|string|null
     {
         return $this->requestAndFormat(
@@ -28,11 +34,16 @@ class TagsEndpoint
         );
     }
 
-    public function one(string $tagName, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null): array|string|null
-    {
-        return $this->read($tagName, null, $raw, $responseMode, $debug);
-    }
-
+    /**
+     * Read a specific tag, or a specific field for that tag.
+     *
+     * @param  string  $tagName  Tag identifier.
+     * @param  ?string  $field  Optional field to read directly from the tag endpoint.
+     * @param  ?bool  $raw  Return raw payload when true.
+     * @param  ?string  $responseMode  Response mode override: data or envelope.
+     * @param  ?bool  $debug  Include debug trace when true.
+     * @return array|string|null Selected tag/field payload.
+     */
     public function read(
         string $tagName,
         ?string $field = null,
@@ -76,22 +87,16 @@ class TagsEndpoint
         );
     }
 
-    public function update(
-        string $path,
-        array $payload,
-        ?bool $raw = null,
-        ?string $responseMode = null,
-        ?bool $debug = null,
-    ): array|string|null {
-        return $this->write(
-            path: $path,
-            payload: $payload,
-            raw: $raw,
-            responseMode: $responseMode,
-            debug: $debug,
-        );
-    }
-
+    /**
+     * Write to a tags endpoint path.
+     *
+     * @param  string  $path  Full API path to write.
+     * @param  array<string, mixed>  $payload  Write payload.
+     * @param  ?bool  $raw  Return raw payload when true.
+     * @param  ?string  $responseMode  Response mode override: data or envelope.
+     * @param  ?bool  $debug  Include debug trace when true.
+     * @return array|string|null Normalized, enveloped, or raw response payload.
+     */
     public function write(
         string $path,
         array $payload,
@@ -110,16 +115,16 @@ class TagsEndpoint
         );
     }
 
-    public function updateValue(
-        string $tagName,
-        int|float|string|bool $value,
-        ?bool $raw = null,
-        ?string $responseMode = null,
-        ?bool $debug = null,
-    ): array|string|null {
-        return $this->value($tagName, $value, $raw, $responseMode, $debug);
-    }
-
+    /**
+     * Update a tag value at /data/tags/{tagName}/value.
+     *
+     * @param  string  $tagName  Tag identifier.
+     * @param  int|float|string|bool  $value  Value to write.
+     * @param  ?bool  $raw  Return raw payload when true.
+     * @param  ?string  $responseMode  Response mode override: data or envelope.
+     * @param  ?bool  $debug  Include debug trace when true.
+     * @return array|string|null Normalized, enveloped, or raw response payload.
+     */
     public function value(
         string $tagName,
         int|float|string|bool $value,
@@ -127,43 +132,18 @@ class TagsEndpoint
         ?string $responseMode = null,
         ?bool $debug = null,
     ): array|string|null {
-        return $this->update(
-            '/data/tags/'.$tagName.'/value',
-            ['value' => (string) $value],
-            $raw,
-            $responseMode,
-            $debug,
-        );
-    }
-
-    public function updateDoValue(
-        int $slot,
-        int $channel,
-        int|float|string|bool $value,
-        ?bool $raw = null,
-        ?string $responseMode = null,
-        ?bool $debug = null,
-    ): array|string|null {
-        return $this->update(
-            path: sprintf('/data/do_value/slot_%d/ch_%d', $slot, $channel),
-            payload: ['val' => (string) $value],
+        return $this->write(
+            path: '/data/tags/'.$tagName.'/value',
+            payload: ['value' => (string) $value],
             raw: $raw,
             responseMode: $responseMode,
             debug: $debug,
         );
     }
 
-    public function getField(
-        string $tagName,
-        string $field,
-        ?bool $raw = null,
-        ?string $responseMode = null,
-        ?bool $debug = null,
-    ): array|string|null {
-        return $this->read($tagName, $field, $raw, $responseMode, $debug);
-    }
-
     /**
+     * Normalize tags payloads into a list containing explicit name keys.
+     *
      * @return array<int, array<string, mixed>>
      */
     protected function normalizeTagsCollection(mixed $rawPayload): array
@@ -194,6 +174,12 @@ class TagsEndpoint
         return $normalized;
     }
 
+    /**
+     * Normalize tag write output into a stable contract.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
     protected function normalizeWriteResponse(string $path, array $payload, mixed $rawPayload): array
     {
         $tagName = null;

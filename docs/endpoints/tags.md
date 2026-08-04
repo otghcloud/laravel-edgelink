@@ -27,18 +27,6 @@ Class: `TagsEndpoint`
   `?bool $debug = null`
   `)`
 
-## Alias Methods
-
-- `all` maps to `list`
-- `one` maps to `read(tagName)`
-- `update` maps to `write`
-- `updateValue` maps to `value`
-- `getField` maps to `read(tagName, field)`
-
-Specialized helper:
-
-- `updateDoValue(int $slot, int $channel, int|float|string|bool $value, ... )`
-
 ## Response Shape Highlights
 
 Collection reads normalize into a stable tag list and ensure a `name` key is present.

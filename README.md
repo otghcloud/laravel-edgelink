@@ -6,6 +6,9 @@ A full featured Laravel client for Advantech Edgelink compatible devices
 (for example ADAM-3600 RTU), implementing the REST API specification
 published by Advantech.
 
+The package now exposes a canonical endpoint API surface only.
+Legacy alias helper methods for tags and IO have been removed.
+
 ## Installation
 
 ```bash
@@ -33,6 +36,8 @@ Full documentation is available in the docs folder:
 - [Configuration](docs/configuration.md)
 - [Usage Examples](docs/usage-examples.md)
 - [Endpoint Reference](docs/endpoints/index.md)
+- [Compatibility Matrix](docs/compatibility.md)
+- [Error Handling](docs/error-handling.md)
 
 ## Compatibility
 
@@ -44,6 +49,17 @@ Tested on ADAM-3600 firmware versions 2.8.0 to 2.8.4.6.
 ## Development
 
 Developer-specific guidance is available in [DEVELOPMENT.md](DEVELOPMENT.md).
+
+## Quality Gates
+
+- PHPUnit suite runs across PHP 8.3, 8.4, and 8.5.
+- PHPStan static analysis is enforced in CI.
+- Coverage is generated in CI and must meet the minimum threshold.
+
+## Release Notes
+
+- [Changelog](CHANGELOG.md)
+- [Security Policy](.github/SECURITY.md)
 
 ## License
 

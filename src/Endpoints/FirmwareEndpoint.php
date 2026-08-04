@@ -9,8 +9,17 @@ class FirmwareEndpoint
 {
     use FormatsEndpointResponses;
 
+    /**
+     * Create a new firmware endpoint wrapper.
+     */
     public function __construct(protected LaravelEdgelinkClient $client) {}
 
+    /**
+     * Validate firmware file metadata before update.
+     *
+     * @param  array<string, mixed>  $payload  Firmware verification payload.
+     * @return array|string|null Normalized, enveloped, or raw response payload.
+     */
     public function verifyFile(array $payload, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null): array|string|null
     {
         return $this->requestAndFormat(
@@ -25,6 +34,12 @@ class FirmwareEndpoint
         );
     }
 
+    /**
+     * Upload firmware payload metadata.
+     *
+     * @param  array<string, mixed>  $payload  Upload payload.
+     * @return array|string|null Normalized, enveloped, or raw response payload.
+     */
     public function upload(array $payload, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null): array|string|null
     {
         return $this->requestAndFormat(
@@ -39,6 +54,12 @@ class FirmwareEndpoint
         );
     }
 
+    /**
+     * Start firmware update workflow.
+     *
+     * @param  array<string, mixed>  $payload  Update request payload.
+     * @return array|string|null Normalized, enveloped, or raw response payload.
+     */
     public function update(array $payload, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null): array|string|null
     {
         return $this->requestAndFormat(
@@ -53,6 +74,12 @@ class FirmwareEndpoint
         );
     }
 
+    /**
+     * Trigger fallback to default firmware image.
+     *
+     * @param  array<string, mixed>  $payload  Recovery payload (typically empty).
+     * @return array|string|null Normalized, enveloped, or raw response payload.
+     */
     public function recoverDefaultImage(array $payload = [], ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null): array|string|null
     {
         return $this->requestAndFormat(
@@ -68,6 +95,8 @@ class FirmwareEndpoint
     }
 
     /**
+     * Normalize firmware mutation responses into a stable contract.
+     *
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */

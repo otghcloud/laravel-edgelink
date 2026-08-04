@@ -41,21 +41,37 @@ body {
 .brand {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.2rem;
   text-decoration: none;
   color: var(--text);
   margin-bottom: 1.2rem;
 }
 
-.brand img {
-  height: auto;
-  max-width: 180px;
+.brand-logo-wrap {
+  display: block;
+  width: 162px;
+  overflow: hidden;
 }
 
-.brand span {
+.brand img {
+  display: block;
+  height: auto;
+  max-width: none;
+  width: 180px;
+}
+
+.brand-product {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+}
+
+.brand-title {
   font-size: 0.95rem;
   font-weight: 700;
   letter-spacing: 0.01em;
+  line-height: 1.2;
 }
 
 .docs-sidebar h2 {

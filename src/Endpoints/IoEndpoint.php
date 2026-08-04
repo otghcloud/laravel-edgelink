@@ -15,48 +15,22 @@ class IoEndpoint
      */
     protected const SUPPORTED_TYPES = ['ai', 'ao', 'di', 'do'];
 
+    /**
+     * Create a new IO endpoint wrapper.
+     */
     public function __construct(protected LaravelEdgelinkClient $client) {}
 
-    public function ai(int $slot, ?int $channel = null, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null): array|string|null
-    {
-        return $this->read('ai', $slot, $channel, $raw, $responseMode, $debug);
-    }
-
-    public function ao(int $slot, ?int $channel = null, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null): array|string|null
-    {
-        return $this->read('ao', $slot, $channel, $raw, $responseMode, $debug);
-    }
-
-    public function di(int $slot, ?int $channel = null, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null): array|string|null
-    {
-        return $this->read('di', $slot, $channel, $raw, $responseMode, $debug);
-    }
-
-    public function do(int $slot, ?int $channel = null, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null): array|string|null
-    {
-        return $this->read('do', $slot, $channel, $raw, $responseMode, $debug);
-    }
-
-    public function setAi(int $slot, int $channel, int|float|string|bool $value, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null): array|string|null
-    {
-        return $this->write('ai', $slot, $channel, $value, $raw, $responseMode, $debug);
-    }
-
-    public function setAo(int $slot, int $channel, int|float|string|bool $value, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null): array|string|null
-    {
-        return $this->write('ao', $slot, $channel, $value, $raw, $responseMode, $debug);
-    }
-
-    public function setDi(int $slot, int $channel, int|float|string|bool $value, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null): array|string|null
-    {
-        return $this->write('di', $slot, $channel, $value, $raw, $responseMode, $debug);
-    }
-
-    public function setDo(int $slot, int $channel, int|float|string|bool $value, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null): array|string|null
-    {
-        return $this->write('do', $slot, $channel, $value, $raw, $responseMode, $debug);
-    }
-
+    /**
+     * Read IO values for a full slot or a single channel.
+     *
+     * @param  string  $type  IO type: ai, ao, di, or do.
+     * @param  int  $slot  Slot index.
+     * @param  ?int  $channel  Optional channel index.
+     * @param  ?bool  $raw  Return raw payload when true.
+     * @param  ?string  $responseMode  Response mode override: data or envelope.
+     * @param  ?bool  $debug  Include debug trace when true.
+     * @return array|string|null Normalized, enveloped, or raw response payload.
+     */
     public function read(
         string $type,
         int $slot,
@@ -79,6 +53,18 @@ class IoEndpoint
         );
     }
 
+    /**
+     * Write an IO value to a specific slot/channel.
+     *
+     * @param  string  $type  IO type: ai, ao, di, or do.
+     * @param  int  $slot  Slot index.
+     * @param  int  $channel  Channel index.
+     * @param  int|float|string|bool  $value  Value to write.
+     * @param  ?bool  $raw  Return raw payload when true.
+     * @param  ?string  $responseMode  Response mode override: data or envelope.
+     * @param  ?bool  $debug  Include debug trace when true.
+     * @return array|string|null Normalized, enveloped, or raw response payload.
+     */
     public function write(
         string $type,
         int $slot,
@@ -104,6 +90,9 @@ class IoEndpoint
         );
     }
 
+    /**
+     * Validate and normalize IO type identifiers.
+     */
     protected function normalizeType(string $type): string
     {
         $normalizedType = strtolower(trim($type));
@@ -115,6 +104,9 @@ class IoEndpoint
         return $normalizedType;
     }
 
+    /**
+     * Build read path for slot-level or channel-level IO reads.
+     */
     protected function buildReadPath(string $type, int $slot, ?int $channel): string
     {
         $path = '/data/'.$type.'_value/slot_'.$slot;
@@ -126,11 +118,19 @@ class IoEndpoint
         return $path;
     }
 
+    /**
+     * Build write path for a specific IO slot/channel.
+     */
     protected function buildWritePath(string $type, int $slot, int $channel): string
     {
         return '/data/'.$type.'_value/slot_'.$slot.'/ch_'.$channel;
     }
 
+    /**
+     * Normalize IO read output for channel or slot reads.
+     *
+     * @return array<string, mixed>
+     */
     protected function normalizeReadResponse(mixed $rawPayload, string $type, int $slot, ?int $channel): array
     {
         if ($channel !== null) {
@@ -149,6 +149,11 @@ class IoEndpoint
         ];
     }
 
+    /**
+     * Normalize IO write output to a stable contract.
+     *
+     * @return array<string, mixed>
+     */
     protected function normalizeWriteResponse(
         mixed $rawPayload,
         string $type,
@@ -165,6 +170,9 @@ class IoEndpoint
         ];
     }
 
+    /**
+     * Extract scalar channel value from mixed IO payload shapes.
+     */
     protected function extractChannelValue(mixed $rawPayload): mixed
     {
         if (is_array($rawPayload)) {
@@ -192,6 +200,8 @@ class IoEndpoint
     }
 
     /**
+     * Normalize slot-level IO payload into channel/value entries.
+     *
      * @return array<int, array{channel:int|string,value:mixed}>
      */
     protected function normalizeChannels(mixed $rawPayload): array

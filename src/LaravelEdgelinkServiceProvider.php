@@ -6,6 +6,9 @@ use Illuminate\Support\ServiceProvider;
 
 class LaravelEdgelinkServiceProvider extends ServiceProvider
 {
+    /**
+     * Register package bindings and default configuration.
+     */
     public function register(): void
     {
         $this->mergeConfigFrom(__DIR__.'/../config/edgelink.php', 'edgelink');
@@ -15,6 +18,9 @@ class LaravelEdgelinkServiceProvider extends ServiceProvider
         });
     }
 
+    /**
+     * Publish package configuration assets.
+     */
     public function boot(): void
     {
         $this->publishes([
