@@ -20,7 +20,13 @@ class SystemEndpoint
 
     public function restart(): array|string|null
     {
-        return $this->client->requestBody('PATCH', '/sys/control/rst', []);
+        $req = $this->client->requestBody('PATCH', '/sys/control/rst');
+        if (is_array($req) && isset($req['token'])) {
+            // Newer firmwares give us a restart token, so we need to send it back alongside our password to actually restart the device
+            return $this->client->requestJson('PATCH', '/sys/control/rst?token='.urlencode($req['token']), ['rst' => '1', 'key' => $this->client->getConfig('password')]);
+        }
+
+        return $req;
     }
 
     public function control(array $payload): array|string|null
