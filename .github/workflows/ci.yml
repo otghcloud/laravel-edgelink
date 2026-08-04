@@ -1,6 +1,7 @@
 name: CI
 
 on:
+  workflow_dispatch:
   pull_request:
   push:
     branches:
@@ -72,18 +73,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-#      - name: Setup PHP
-#        uses: shivammathur/setup-php@v2
-#        with:
-#          php-version: ${{ matrix.php }}
-#          tools: composer:v2
-#          coverage: none
-#
-#      - name: Download vendor artifact
-#        uses: actions/download-artifact@v4
-#        with:
-#          name: vendor-php-${{ matrix.php }}
-#          path: vendor
+      - name: Download vendor artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: vendor-php-${{ matrix.php }}
+          path: vendor
+
       - name: "laravel-pint"
         uses: aglipanci/laravel-pint-action@0.1.0
         with:
@@ -158,7 +153,8 @@ jobs:
           path: vendor
 
       - name: Run Pest with JUnit output
-        run: php -d memory_limit=1024M ./vendor/bin/pest --log-junit junit.xml
+        run: | 
+          php -d memory_limit=1024M ./vendor/bin/pest --log-junit junit.xml
 
       - name: Upload test artifacts
         if: always()
@@ -200,4 +196,5 @@ jobs:
           path: vendor
 
       - name: Run PHPStan
-        run: ./vendor/bin/phpstan analyse
+        run: |
+          php ./vendor/bin/phpstan analyse
