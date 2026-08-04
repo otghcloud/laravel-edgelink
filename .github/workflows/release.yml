@@ -1,0 +1,172 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  create_release:
+    name: release:create
+    runs-on: ubuntu-latest
+    outputs:
+      release_tag: ${{ steps.release.outputs.release_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calculate version, tag, and release
+        id: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_DEBUG: ${{ vars.RELEASE_DEBUG || '1' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${RELEASE_DEBUG}" == "1" ]]; then
+            set -x
+          fi
+
+          echo "[release:create] shell=$(readlink /proc/$$/exe 2>/dev/null || echo /bin/sh)"
+          echo "[release:create] commit=${GITHUB_SHA} run=${GITHUB_RUN_ID}"
+
+          if [[ -z "${GITHUB_TOKEN:-}" ]]; then
+            echo "GITHUB_TOKEN is required for release creation."
+            exit 1
+          fi
+
+          LAST_TAG=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-version:refname | head -n1)
+          if [[ -z "$LAST_TAG" ]]; then
+            LAST_TAG="v0.0.0"
+            RANGE="HEAD"
+          else
+            RANGE="${LAST_TAG}..HEAD"
+          fi
+          echo "[release:create] last_tag=${LAST_TAG} range=${RANGE}"
+
+          if git log --format=%B "$RANGE" | grep -q "BREAKING CHANGE" || git log --format=%s "$RANGE" | grep -Eq '^[a-z]+\(.+\)!:|^[a-z]+!:'; then
+            BUMP="major"
+          elif git log --format=%s "$RANGE" | grep -Eq '^feat(\(.+\))?:'; then
+            BUMP="minor"
+          else
+            BUMP="patch"
+          fi
+          echo "[release:create] bump=${BUMP}"
+
+          VERSION_NO_V=${LAST_TAG#v}
+          MAJOR=${VERSION_NO_V%%.*}
+          REST=${VERSION_NO_V#*.}
+          MINOR=${REST%%.*}
+          PATCH=${REST#*.}
+
+          if ! echo "$MAJOR" | grep -Eq '^[0-9]+$' || ! echo "$MINOR" | grep -Eq '^[0-9]+$' || ! echo "$PATCH" | grep -Eq '^[0-9]+$'; then
+            echo "Invalid semver tag parsed from LAST_TAG=${LAST_TAG}"
+            exit 1
+          fi
+
+          case "$BUMP" in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            *)
+              PATCH=$((PATCH + 1))
+              ;;
+          esac
+
+          NEW_TAG="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "[release:create] new_tag=${NEW_TAG}"
+
+          {
+            echo "# ${NEW_TAG}"
+            echo
+            echo "Generated from ${RANGE}."
+            echo
+            git log "$RANGE" --pretty=format:'- %s (%h)'
+          } > CHANGELOG.md
+          wc -l CHANGELOG.md
+
+          if git rev-parse -q --verify "refs/tags/${NEW_TAG}" >/dev/null; then
+            echo "Tag ${NEW_TAG} already exists locally, continuing."
+          else
+            git tag -a "${NEW_TAG}" "${GITHUB_SHA}" -m "Release ${NEW_TAG}"
+            git push origin "refs/tags/${NEW_TAG}"
+          fi
+
+          RELEASE_API_URL="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${NEW_TAG}"
+          RELEASE_STATUS=$(curl --silent --output /dev/null --write-out "%{http_code}" \
+            --header "Authorization: Bearer ${GITHUB_TOKEN}" \
+            --header "Accept: application/vnd.github+json" \
+            "${RELEASE_API_URL}")
+          echo "[release:create] release_exists_http=${RELEASE_STATUS}"
+
+          CHANGELOG_JSON=$(jq -Rs . < CHANGELOG.md)
+
+          if [[ "${RELEASE_STATUS}" == "404" ]]; then
+            curl --silent --show-error --fail \
+              --request POST \
+              --header "Authorization: Bearer ${GITHUB_TOKEN}" \
+              --header "Accept: application/vnd.github+json" \
+              --url "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases" \
+              --data "{\"tag_name\":\"${NEW_TAG}\",\"name\":\"${NEW_TAG}\",\"body\":${CHANGELOG_JSON}}"
+          else
+            RELEASE_ID=$(curl --silent --show-error --fail \
+              --header "Authorization: Bearer ${GITHUB_TOKEN}" \
+              --header "Accept: application/vnd.github+json" \
+              "${RELEASE_API_URL}" | jq -r '.id')
+
+            curl --silent --show-error --fail \
+              --request PATCH \
+              --header "Authorization: Bearer ${GITHUB_TOKEN}" \
+              --header "Accept: application/vnd.github+json" \
+              --url "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
+              --data "{\"name\":\"${NEW_TAG}\",\"body\":${CHANGELOG_JSON}}"
+          fi
+
+          echo "release_tag=${NEW_TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: CHANGELOG.md
+          retention-days: 28
+
+  notify_packagist:
+    name: release:packagist
+    runs-on: ubuntu-latest
+    needs:
+      - create_release
+    if: ${{ always() && needs.create_release.result == 'success' }}
+    steps:
+      - name: Notify Packagist
+        env:
+          PACKAGIST_TOKEN: ${{ secrets.PACKAGIST_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${PACKAGIST_TOKEN:-}" ]]; then
+            echo "PACKAGIST_TOKEN is required to notify Packagist."
+            exit 1
+          fi
+
+          curl --silent --show-error --fail \
+            --request POST \
+            --header "Content-Type: application/json" \
+            --header "Authorization: Bearer otghcloud:${PACKAGIST_TOKEN}" \
+            --url "https://packagist.org/api/update-package" \
+            --data '{"repository":"https://packagist.org/otghcloud/laravel-edgelink"}'

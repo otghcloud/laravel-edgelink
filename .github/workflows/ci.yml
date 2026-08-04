@@ -1,0 +1,202 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deps:
+    name: deps (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php:
+          - '8.4'
+          - '8.5'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer:v2
+          coverage: none
+
+      - name: Set Composer cache directory
+        run: echo "COMPOSER_CACHE_DIR=$GITHUB_WORKSPACE/.composer-cache" >> "$GITHUB_ENV"
+
+      - name: Restore Composer cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            vendor
+            .composer-cache
+          key: php-${{ matrix.php }}-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-ansi --no-interaction --no-progress --no-scripts
+
+      - name: Upload vendor artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vendor-php-${{ matrix.php }}
+          path: vendor
+          retention-days: 7
+
+  lint_php:
+    name: lint:php (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    needs:
+      - deps
+    strategy:
+      fail-fast: false
+      matrix:
+        php:
+          - '8.4'
+          - '8.5'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer:v2
+          coverage: none
+
+      - name: Download vendor artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: vendor-php-${{ matrix.php }}
+          path: vendor
+
+      - name: Run Pint in test mode
+        run: ./vendor/bin/pint --test
+
+  lint_commits:
+    name: lint:commits
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate conventional commits
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            FROM_REF="${{ github.event.pull_request.base.sha }}"
+          else
+            FROM_REF="${{ github.event.before }}"
+          fi
+
+          if [[ -z "$FROM_REF" || "$FROM_REF" == "0000000000000000000000000000000000000000" ]]; then
+            FROM_REF=$(git rev-list --max-parents=0 HEAD | tail -n1)
+          fi
+
+          if [[ -z "$FROM_REF" ]]; then
+            echo "Unable to determine commit range for linting."
+            exit 1
+          fi
+
+          COMMITS=$(git rev-list --no-merges "$FROM_REF..${GITHUB_SHA}")
+
+          if [[ -z "$COMMITS" ]]; then
+            COMMITS="${GITHUB_SHA}"
+          fi
+
+          for commit_sha in $COMMITS; do
+            header=$(git show -s --format=%s "$commit_sha")
+            ./scripts/validate-conventional-commit.sh "$header"
+          done
+
+  test_pest:
+    name: test:pest (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    needs:
+      - deps
+    strategy:
+      fail-fast: false
+      matrix:
+        php:
+          - '8.4'
+          - '8.5'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer:v2
+          coverage: none
+
+      - name: Download vendor artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: vendor-php-${{ matrix.php }}
+          path: vendor
+
+      - name: Run Pest with JUnit output
+        run: php -d memory_limit=1024M ./vendor/bin/pest --log-junit junit.xml
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-artifacts-php-${{ matrix.php }}
+          path: |
+            junit.xml
+            storage/logs
+          if-no-files-found: ignore
+          retention-days: 7
+
+  analyse_phpstan:
+    name: analyse:phpstan (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    needs:
+      - deps
+    strategy:
+      fail-fast: false
+      matrix:
+        php:
+          - '8.4'
+          - '8.5'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer:v2
+          coverage: none
+
+      - name: Download vendor artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: vendor-php-${{ matrix.php }}
+          path: vendor
+
+      - name: Run PHPStan
+        run: ./vendor/bin/phpstan analyse
