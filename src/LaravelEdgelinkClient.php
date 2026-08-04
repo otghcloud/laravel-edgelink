@@ -86,6 +86,18 @@ class LaravelEdgelinkClient
         return $this->sessionId;
     }
 
+    public function getConfig(string $key, mixed $default = null): mixed
+    {
+        return match ($key) {
+            'base_url' => $this->baseUrl,
+            'password' => $this->password,
+            'referer' => $this->referer,
+            'verify_tls' => $this->verifyTls,
+            'timeout_seconds' => $this->timeoutSeconds,
+            default => $default,
+        };
+    }
+
     public function auth(): AuthEndpoint
     {
         return $this->authEndpoint;
