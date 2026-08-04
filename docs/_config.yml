@@ -5,8 +5,8 @@ markdown: kramdown
 repository_url: https://github.com/otghcloud/laravel-edgelink
 
 defaults:
-	- scope:
-			path: ""
-			type: pages
-		values:
-			layout: docs
+  - scope:
+      path: ""
+      type: pages
+    values:
+      layout: docs
