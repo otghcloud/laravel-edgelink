@@ -1,0 +1,77 @@
+name: Validate PR title
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate PR title
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login != 'dependabot[bot]'
+    steps:
+      - name: Check title format
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PATTERN='^(fix|feat|improve|ci|docs|style|build|refactor|perf|test|chore|revert)(\([a-z0-9._/-]+\))?(!)?: [A-Z].*[^.]$'
+
+          echo "PR title: ${PR_TITLE}"
+
+          if echo "${PR_TITLE}" | grep -qP "${PATTERN}"; then
+            echo "Title is valid."
+            exit 0
+          fi
+
+          echo "::error::PR title does not conform to the required format."
+          echo ""
+          echo "Expected:  <prefix>(optional-scope): <Description starting with a capital letter>"
+          echo "Received:  ${PR_TITLE}"
+          echo ""
+          echo "Allowed prefixes (lowercase):"
+          echo "  fix, feat, improve, ci, docs, style, build, refactor, perf, test, chore, revert"
+          echo ""
+          echo "Examples:"
+          echo "  fix: Correct RTU timeout handling"
+          echo "  feat(api): Add runtime device info lookup"
+          echo "  ci(actions): Harden release workflow sequencing"
+          echo "  refactor(client)!: Remove legacy login helper"
+          echo ""
+          echo "See CONTRIBUTING.md for the project contribution conventions."
+          exit 1
+
+  all-checks-passed:
+    name: Validate PR title / All checks passed
+    runs-on: ubuntu-latest
+    permissions: {}
+    needs:
+      - validate
+    if: always()
+    steps:
+      - name: Check result
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "validate: ${{ needs.validate.result }}"
+
+          case "${{ needs.validate.result }}" in
+            success|skipped)
+              exit 0
+              ;;
+            *)
+              exit 1
+              ;;
+          esac

@@ -1,66 +1,117 @@
 name: Release
 
 on:
-  push:
+  pull_request:
+    types:
+      - closed
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      bump_override:
+        description: Force a specific semantic version bump.
+        required: true
+        default: auto
+        type: choice
+        options:
+          - auto
+          - patch
+          - minor
+          - major
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-main
   cancel-in-progress: false
 
 permissions:
   contents: write
+  pull-requests: read
 
 jobs:
-  create_release:
-    name: release:create
+  bump:
+    name: Bump version
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     outputs:
-      release_tag: ${{ steps.release.outputs.release_tag }}
+      skip: ${{ steps.skip_check.outputs.skip }}
+      version: ${{ steps.next_version.outputs.version }}
+      release_sha: ${{ steps.capture_sha.outputs.sha }}
+      pr_title: ${{ fromJson(steps.pr_info.outputs.result).title }}
+      pr_body: ${{ fromJson(steps.pr_info.outputs.result).body }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Calculate version, tag, and release
-        id: release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_DEBUG: ${{ vars.RELEASE_DEBUG || '1' }}
+      - name: Check for skip marker
+        id: skip_check
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${RELEASE_DEBUG}" == "1" ]]; then
-            set -x
+
+          COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+          if echo "${COMMIT_MESSAGE}" | grep -q '\[skip-release\]'; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Skipping workflow due to [skip-release] marker"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
-          echo "[release:create] shell=$(readlink /proc/$$/exe 2>/dev/null || echo /bin/sh)"
-          echo "[release:create] commit=${GITHUB_SHA} run=${GITHUB_RUN_ID}"
+      - name: Set up Git
+        if: steps.skip_check.outputs.skip == 'false'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
 
-          if [[ -z "${GITHUB_TOKEN:-}" ]]; then
-            echo "GITHUB_TOKEN is required for release creation."
-            exit 1
-          fi
+      - name: Get PR information
+        id: pr_info
+        if: steps.skip_check.outputs.skip == 'false'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            if (context.eventName === 'workflow_dispatch') {
+              return {
+                title: 'Manual release',
+                body: 'Manual release triggered from workflow_dispatch.',
+                number: null,
+                found: false,
+              };
+            }
+
+            const pr = context.payload.pull_request;
+            return {
+              title: pr.title,
+              body: pr.body || 'No description provided.',
+              number: pr.number,
+              found: true,
+            };
+
+      - name: Fetch latest main and rebase
+        if: steps.skip_check.outputs.skip == 'false' && github.event_name != 'workflow_dispatch'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git rebase origin/main
+
+      - name: Calculate next version
+        id: next_version
+        if: steps.skip_check.outputs.skip == 'false'
+        env:
+          BUMP_OVERRIDE: ${{ inputs.bump_override || 'auto' }}
+          PR_TITLE: ${{ fromJson(steps.pr_info.outputs.result).title }}
+          PR_BODY: ${{ fromJson(steps.pr_info.outputs.result).body }}
+        shell: bash
+        run: |
+          set -euo pipefail
 
           LAST_TAG=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-version:refname | head -n1)
-          if [[ -z "$LAST_TAG" ]]; then
+          if [[ -z "${LAST_TAG}" ]]; then
             LAST_TAG="v0.0.0"
-            RANGE="HEAD"
-          else
-            RANGE="${LAST_TAG}..HEAD"
           fi
-          echo "[release:create] last_tag=${LAST_TAG} range=${RANGE}"
-
-          if git log --format=%B "$RANGE" | grep -q "BREAKING CHANGE" || git log --format=%s "$RANGE" | grep -Eq '^[a-z]+\(.+\)!:|^[a-z]+!:'; then
-            BUMP="major"
-          elif git log --format=%s "$RANGE" | grep -Eq '^feat(\(.+\))?:'; then
-            BUMP="minor"
-          else
-            BUMP="patch"
-          fi
-          echo "[release:create] bump=${BUMP}"
 
           VERSION_NO_V=${LAST_TAG#v}
           MAJOR=${VERSION_NO_V%%.*}
@@ -68,12 +119,22 @@ jobs:
           MINOR=${REST%%.*}
           PATCH=${REST#*.}
 
-          if ! echo "$MAJOR" | grep -Eq '^[0-9]+$' || ! echo "$MINOR" | grep -Eq '^[0-9]+$' || ! echo "$PATCH" | grep -Eq '^[0-9]+$'; then
-            echo "Invalid semver tag parsed from LAST_TAG=${LAST_TAG}"
+          if ! echo "${MAJOR}" | grep -Eq '^[0-9]+$' || ! echo "${MINOR}" | grep -Eq '^[0-9]+$' || ! echo "${PATCH}" | grep -Eq '^[0-9]+$'; then
+            echo "Invalid semver tag parsed from ${LAST_TAG}"
             exit 1
           fi
 
-          case "$BUMP" in
+          if [[ "${BUMP_OVERRIDE}" != "auto" && -n "${BUMP_OVERRIDE}" ]]; then
+            BUMP="${BUMP_OVERRIDE}"
+          elif printf '%s\n%s\n' "${PR_TITLE}" "${PR_BODY}" | grep -q 'BREAKING CHANGE' || [[ "${PR_TITLE}" =~ ^[a-z]+(\([a-z0-9._/-]+\))?!: ]]; then
+            BUMP="major"
+          elif [[ "${PR_TITLE}" =~ ^feat(\([a-z0-9._/-]+\))?(!)?: ]]; then
+            BUMP="minor"
+          else
+            BUMP="patch"
+          fi
+
+          case "${BUMP}" in
             major)
               MAJOR=$((MAJOR + 1))
               MINOR=0
@@ -88,85 +149,106 @@ jobs:
               ;;
           esac
 
-          NEW_TAG="v${MAJOR}.${MINOR}.${PATCH}"
-          echo "[release:create] new_tag=${NEW_TAG}"
+          NEXT_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          echo "version=${NEXT_VERSION}" >> "$GITHUB_OUTPUT"
 
+      - name: Capture release SHA
+        id: capture_sha
+        if: steps.skip_check.outputs.skip == 'false'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          elif [[ -n "${{ github.event.pull_request.merge_commit_sha }}" ]]; then
+            echo "sha=${{ github.event.pull_request.merge_commit_sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          fi
+
+  release:
+    name: Commit & release
+    needs:
+      - bump
+    if: needs.bump.outputs.skip == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout release SHA
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.bump.outputs.release_sha }}
+          fetch-depth: 0
+
+      - name: Build tag message from PR
+        env:
+          NEW_VERSION: ${{ needs.bump.outputs.version }}
+          PR_TITLE: ${{ needs.bump.outputs.pr_title }}
+          PR_BODY: ${{ needs.bump.outputs.pr_body }}
+        shell: bash
+        run: |
+          set -euo pipefail
           {
-            echo "# ${NEW_TAG}"
-            echo
-            echo "Generated from ${RANGE}."
-            echo
-            git log "$RANGE" --pretty=format:'- %s (%h)'
-          } > CHANGELOG.md
-          wc -l CHANGELOG.md
+            printf '# v%s - %s\n\n' "${NEW_VERSION}" "${PR_TITLE}"
+            printf '%s\n' "${PR_BODY}"
+          } > tag_message.txt
 
-          if git rev-parse -q --verify "refs/tags/${NEW_TAG}" >/dev/null; then
-            echo "Tag ${NEW_TAG} already exists locally, continuing."
-          else
-            git tag -a "${NEW_TAG}" "${GITHUB_SHA}" -m "Release ${NEW_TAG}"
-            git push origin "refs/tags/${NEW_TAG}"
+      - name: Create and push version tag
+        id: push_tag
+        env:
+          NEW_VERSION: ${{ needs.bump.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git rev-parse -q --verify "refs/tags/v${NEW_VERSION}" >/dev/null; then
+            echo "Tag v${NEW_VERSION} already exists."
+            exit 0
           fi
 
-          RELEASE_API_URL="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${NEW_TAG}"
-          RELEASE_STATUS=$(curl --silent --output /dev/null --write-out "%{http_code}" \
-            --header "Authorization: Bearer ${GITHUB_TOKEN}" \
-            --header "Accept: application/vnd.github+json" \
-            "${RELEASE_API_URL}")
-          echo "[release:create] release_exists_http=${RELEASE_STATUS}"
+          git tag -a "v${NEW_VERSION}" -F tag_message.txt
+          git push origin "v${NEW_VERSION}"
 
-          CHANGELOG_JSON=$(jq -Rs . < CHANGELOG.md)
-
-          if [[ "${RELEASE_STATUS}" == "404" ]]; then
-            curl --silent --show-error --fail \
-              --request POST \
-              --header "Authorization: Bearer ${GITHUB_TOKEN}" \
-              --header "Accept: application/vnd.github+json" \
-              --url "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases" \
-              --data "{\"tag_name\":\"${NEW_TAG}\",\"name\":\"${NEW_TAG}\",\"body\":${CHANGELOG_JSON}}"
-          else
-            RELEASE_ID=$(curl --silent --show-error --fail \
-              --header "Authorization: Bearer ${GITHUB_TOKEN}" \
-              --header "Accept: application/vnd.github+json" \
-              "${RELEASE_API_URL}" | jq -r '.id')
-
-            curl --silent --show-error --fail \
-              --request PATCH \
-              --header "Authorization: Bearer ${GITHUB_TOKEN}" \
-              --header "Accept: application/vnd.github+json" \
-              --url "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
-              --data "{\"name\":\"${NEW_TAG}\",\"body\":${CHANGELOG_JSON}}"
-          fi
-
-          echo "release_tag=${NEW_TAG}" >> "$GITHUB_OUTPUT"
+      - name: Create GitHub release
+        id: create_release
+        if: steps.push_tag.outcome == 'success'
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: v${{ needs.bump.outputs.version }}
+          name: v${{ needs.bump.outputs.version }} - ${{ needs.bump.outputs.pr_title }}
+          body_path: tag_message.txt
+          generate_release_notes: true
 
       - name: Upload release artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-artifacts
-          path: CHANGELOG.md
+          path: tag_message.txt
           retention-days: 28
 
-#  notify_packagist:
-#    name: release:packagist
-#    runs-on: ubuntu-latest
-#    needs:
-#      - create_release
-#    if: ${{ always() && needs.create_release.result == 'success' }}
-#    steps:
-#      - name: Notify Packagist
-#        env:
-#          PACKAGIST_TOKEN: ${{ secrets.PACKAGIST_TOKEN }}
-#        shell: bash
-#        run: |
-#          set -euo pipefail
-#          if [[ -z "${PACKAGIST_TOKEN:-}" ]]; then
-#            echo "PACKAGIST_TOKEN is required to notify Packagist."
-#            exit 1
-#          fi
+  notify_packagist:
+    name: release:packagist
+    runs-on: ubuntu-latest
+    needs:
+      - release
+    if: ${{ always() && needs.release.result == 'success' }}
+    steps:
+      - name: Notify Packagist
+        env:
+          PACKAGIST_TOKEN: ${{ secrets.PACKAGIST_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
 
-#          curl --silent --show-error --fail \
-#            --request POST \
-#            --header "Content-Type: application/json" \
-#            --header "Authorization: Bearer otghcloud:${PACKAGIST_TOKEN}" \
-#            --url "https://packagist.org/api/update-package" \
-#            --data '{"repository":"https://packagist.org/otghcloud/laravel-edgelink"}'
+          if [[ -z "${PACKAGIST_TOKEN:-}" ]]; then
+            echo "PACKAGIST_TOKEN not configured, skipping Packagist notification."
+            exit 0
+          fi
+
+          curl --silent --show-error --fail \
+            --request POST \
+            --header "Content-Type: application/json" \
+            --header "Authorization: Bearer otghcloud:${PACKAGIST_TOKEN}" \
+            --url "https://packagist.org/api/update-package" \
+            --data '{"repository":{"url":"https://github.com/otghcloud/laravel-edgelink"}}'

@@ -1,7 +1,4 @@
-[<img src="https://otgh-static-assets.s3.otgh.cloud/branding/logos/otgh_cloud_2024.png" width="200px" />](https://git.otgh.cloud/open-source/laravel/edgelink)
-
-[![pipeline status](https://git.otgh.cloud/open-source/laravel/edgelink/badges/main/pipeline.svg)](https://git.otgh.cloud/open-source/laravel/edgelink/-/commits/main)
-[![Latest Release](https://git.otgh.cloud/open-source/laravel/edgelink/-/badges/release.svg)](https://git.otgh.cloud/open-source/laravel/edgelink/-/releases)
+[<img src="https://otgh-static-assets.s3.otgh.cloud/branding/logos/otgh_cloud_2024.png" alt="OTGH Cloud" width="200px" />](https://github.com/otghcloud/laravel-edgelink)
 
 # Laravel Edgelink Client
 
