@@ -1,7 +1,3 @@
----
-title: System Endpoint
----
-
 # System Endpoint
 
 Class: `SystemEndpoint`
@@ -11,12 +7,38 @@ Class: `SystemEndpoint`
 - `version(?bool $raw = null, ?string $responseMode = null, ?bool $debug = null)`
 - `updateInfo(?bool $raw = null, ?string $responseMode = null, ?bool $debug = null)`
 - `restart(?bool $raw = null, ?string $responseMode = null, ?bool $debug = null)`
-- `control(array $payload, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null)`
-- `calibration(array $payload, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null)`
+- `control(`
+  `array $payload,`
+  `?bool $raw = null,`
+  `?string $responseMode = null,`
+  `?bool $debug = null`
+  `)`
+- `calibration(`
+  `array $payload,`
+  `?bool $raw = null,`
+  `?string $responseMode = null,`
+  `?bool $debug = null`
+  `)`
 - `webSettings(?bool $raw = null, ?string $responseMode = null, ?bool $debug = null)`
-- `updateWebSettings(array $payload, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null)`
-- `deviceInfo(int $slot = 0, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null)`
-- `updateDeviceInfo(int $slot, array $payload, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null)`
+- `updateWebSettings(`
+  `array $payload,`
+  `?bool $raw = null,`
+  `?string $responseMode = null,`
+  `?bool $debug = null`
+  `)`
+- `deviceInfo(`
+  `int $slot = 0,`
+  `?bool $raw = null,`
+  `?string $responseMode = null,`
+  `?bool $debug = null`
+  `)`
+- `updateDeviceInfo(`
+  `int $slot,`
+  `array $payload,`
+  `?bool $raw = null,`
+  `?string $responseMode = null,`
+  `?bool $debug = null`
+  `)`
 
 ## Behavior Notes
 

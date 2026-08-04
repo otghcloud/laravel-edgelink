@@ -1,7 +1,3 @@
----
-title: Usage Examples
----
-
 # Usage Examples
 
 ## Basic Usage From Config

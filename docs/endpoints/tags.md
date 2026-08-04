@@ -1,7 +1,3 @@
----
-title: Tags Endpoint
----
-
 # Tags Endpoint
 
 Class: `TagsEndpoint`
@@ -9,9 +5,27 @@ Class: `TagsEndpoint`
 ## Canonical Methods
 
 - `list(?bool $raw = null, ?string $responseMode = null, ?bool $debug = null)`
-- `read(string $tagName, ?string $field = null, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null)`
-- `write(string $path, array $payload, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null)`
-- `value(string $tagName, int|float|string|bool $value, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null)`
+- `read(`
+  `string $tagName,`
+  `?string $field = null,`
+  `?bool $raw = null,`
+  `?string $responseMode = null,`
+  `?bool $debug = null`
+  `)`
+- `write(`
+  `string $path,`
+  `array $payload,`
+  `?bool $raw = null,`
+  `?string $responseMode = null,`
+  `?bool $debug = null`
+  `)`
+- `value(`
+  `string $tagName,`
+  `int|float|string|bool $value,`
+  `?bool $raw = null,`
+  `?string $responseMode = null,`
+  `?bool $debug = null`
+  `)`
 
 ## Alias Methods
 

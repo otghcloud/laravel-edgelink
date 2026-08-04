@@ -1,7 +1,3 @@
----
-title: Authentication Endpoint
----
-
 # Authentication Endpoint
 
 Class: `AuthEndpoint`

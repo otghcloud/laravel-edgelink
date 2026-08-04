@@ -1,7 +1,3 @@
----
-title: Endpoint Reference
----
-
 # Endpoint Reference
 
 Each endpoint is accessible from the client instance.

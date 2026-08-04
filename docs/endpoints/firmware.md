@@ -1,17 +1,33 @@
----
-title: Firmware Endpoint
----
-
 # Firmware Endpoint
 
 Class: `FirmwareEndpoint`
 
 ## Methods
 
-- `verifyFile(array $payload, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null)`
-- `upload(array $payload, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null)`
-- `update(array $payload, ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null)`
-- `recoverDefaultImage(array $payload = [], ?bool $raw = null, ?string $responseMode = null, ?bool $debug = null)`
+- `verifyFile(`
+  `array $payload,`
+  `?bool $raw = null,`
+  `?string $responseMode = null,`
+  `?bool $debug = null`
+  `)`
+- `upload(`
+  `array $payload,`
+  `?bool $raw = null,`
+  `?string $responseMode = null,`
+  `?bool $debug = null`
+  `)`
+- `update(`
+  `array $payload,`
+  `?bool $raw = null,`
+  `?string $responseMode = null,`
+  `?bool $debug = null`
+  `)`
+- `recoverDefaultImage(`
+  `array $payload = [],`
+  `?bool $raw = null,`
+  `?string $responseMode = null,`
+  `?bool $debug = null`
+  `)`
 
 ## Response Shape Highlights
 

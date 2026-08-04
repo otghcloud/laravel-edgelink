@@ -1,7 +1,3 @@
----
-title: Documentation Home
----
-
 # Laravel Edgelink Documentation
 
 Welcome to the documentation for the Laravel Edgelink client package.
