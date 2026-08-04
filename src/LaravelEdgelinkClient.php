@@ -17,7 +17,6 @@ use OTGH\LaravelEdgelink\Endpoints\TagsEndpoint;
 use OTGH\LaravelEdgelink\Exceptions\AuthenticationException;
 use OTGH\LaravelEdgelink\Exceptions\ConfigurationException;
 use OTGH\LaravelEdgelink\Exceptions\RequestException;
-use OTGH\LaravelEdgelink\Exceptions\SessionException;
 
 /**
  * @phpstan-consistent-constructor
@@ -428,14 +427,12 @@ class LaravelEdgelinkClient
 
         try {
             $this->login();
-        } catch (AuthenticationException $e) {
-            throw $e;
         } catch (\Throwable $e) {
-            throw new AuthenticationException('Unable to authenticate before request.', 0, $e);
-        }
+            if ($e instanceof AuthenticationException) {
+                throw $e;
+            }
 
-        if (! $this->isAuthenticated()) {
-            throw new SessionException('No valid session is available for authenticated request.');
+            throw new AuthenticationException('Unable to authenticate before request.', 0, $e);
         }
     }
 

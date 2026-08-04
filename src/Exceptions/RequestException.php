@@ -40,14 +40,14 @@ class RequestException extends EdgelinkException
         string $path,
         HttpRequestException $exception,
     ): self {
-        $statusCode = $exception->response?->status();
-        $body = $exception->response?->body();
+        $statusCode = $exception->response->status();
+        $body = $exception->response->body();
 
         $message = sprintf(
-            'Edgelink request failed: [%s %s]%s',
+            'Edgelink request failed: [%s %s] HTTP %d',
             $method,
             $path,
-            $statusCode !== null ? ' HTTP '.$statusCode : '',
+            $statusCode,
         );
 
         return new self($message, $method, $path, $statusCode, $body, $exception);

@@ -1,4 +1,5 @@
 [<img src="https://otgh-static-assets.s3.otgh.cloud/branding/logos/otgh_cloud_2024.png" alt="OTGH Cloud" width="200px" />](https://github.com/otghcloud/laravel-edgelink)
+
 # Development
 
 ## Package-Local CLI
@@ -60,7 +61,25 @@ composer rtu:cli -- io:write --type=do --slot=0 --channel=0 --value=0
 
 # Quick probe suite
 composer rtu:probe -- --response-mode=data
+
+# Format code
+composer format
+
+# Static analysis
+composer analyse
+
+# Full test suite
+composer test
+
+# Coverage report (local)
+composer test-coverage
 ```
+
+## Quality Policy
+
+- CI enforces formatting, static analysis, and PHPUnit.
+- Coverage is generated in CI and must meet the configured minimum threshold.
+- PRs should keep canonical endpoint API usage in code examples and docs.
 
 ## Troubleshooting
 

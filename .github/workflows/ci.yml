@@ -85,6 +85,31 @@ jobs:
         with:
           preset: laravel
 
+  analyse_phpstan:
+    name: analyse:phpstan (PHP 8.5)
+    runs-on: ubuntu-latest
+    needs:
+      - deps
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          tools: composer:v2
+          coverage: none
+
+      - name: Download vendor artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: vendor-php-8.5
+          path: vendor
+
+      - name: Run PHPStan
+        run: composer analyse
+
   test_phpunit:
     name: test:phpunit (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
@@ -106,7 +131,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           tools: composer:v2
-          coverage: none
+          coverage: ${{ matrix.php == '8.5' && 'pcov' || 'none' }}
 
       - name: Download vendor artifact
         uses: actions/download-artifact@v8
@@ -115,9 +140,38 @@ jobs:
           path: vendor
 
       - name: Run PHPUnit with JUnit output
+        if: matrix.php != '8.5'
         run: |
           mkdir -p bootstrap/cache
           php ./vendor/bin/phpunit --log-junit junit.xml
+
+      - name: Run PHPUnit with coverage
+        if: matrix.php == '8.5'
+        run: |
+          mkdir -p bootstrap/cache
+          php ./vendor/bin/phpunit --log-junit junit.xml --coverage-clover coverage.xml --coverage-text
+
+      - name: Enforce coverage threshold
+        if: matrix.php == '8.5'
+        env:
+          COVERAGE_THRESHOLD: '80'
+        run: |
+          set -euo pipefail
+          php -r '
+            $xml = simplexml_load_file("coverage.xml");
+            if ($xml === false) {
+              fwrite(STDERR, "Unable to read coverage.xml\n");
+              exit(1);
+            }
+            $lineRate = (float) ($xml["line-rate"] ?? 0);
+            $coverage = round($lineRate * 100, 2);
+            $threshold = (float) getenv("COVERAGE_THRESHOLD");
+            fwrite(STDOUT, "Coverage: {$coverage}% (threshold: {$threshold}%)\n");
+            if ($coverage < $threshold) {
+              fwrite(STDERR, "Coverage threshold not met.\n");
+              exit(1);
+            }
+          '
 
       - name: Upload test artifacts
         if: always()
@@ -126,6 +180,7 @@ jobs:
           name: test-artifacts-php-${{ matrix.php }}
           path: |
             junit.xml
+            coverage.xml
             storage/logs
           if-no-files-found: ignore
           retention-days: 7
@@ -137,6 +192,7 @@ jobs:
     needs:
       - deps
       - lint_php
+      - analyse_phpstan
       - test_phpunit
     if: always()
     steps:
@@ -148,6 +204,7 @@ jobs:
           results=(
             "deps=${{ needs.deps.result }}"
             "lint_php=${{ needs.lint_php.result }}"
+            "analyse_phpstan=${{ needs.analyse_phpstan.result }}"
             "test_phpunit=${{ needs.test_phpunit.result }}"
           )
 
