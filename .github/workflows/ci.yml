@@ -149,6 +149,7 @@ jobs:
 
       - name: Run PHPUnit with JUnit output
         run: | 
+          mkdir -p bootstrap/cache
           php ./vendor/bin/phpunit --log-junit junit.xml
 
       - name: Upload test artifacts
