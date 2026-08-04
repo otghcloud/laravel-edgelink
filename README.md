@@ -101,8 +101,8 @@ Example with multiple RTUs in one job/request:
 use OTGH\LaravelEdgelink\LaravelEdgelinkClient;
 
 $rtus = [
-	['host' => '10.5.1.60', 'password' => 'pass-a'],
-	['host' => '10.5.1.61', 'password' => 'pass-b'],
+	['host' => '10.5.1.60', 'password' => 'foo'],
+	['host' => '10.5.1.61', 'password' => 'bar'],
 ];
 
 foreach ($rtus as $rtu) {
