@@ -146,15 +146,18 @@ jobs:
           tools: composer:v2
           coverage: none
 
-      - name: Download vendor artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: vendor-php-${{ matrix.php }}
-          path: vendor
+#      - name: Download vendor artifact
+#        uses: actions/download-artifact@v4
+#        with:
+#          name: vendor-php-${{ matrix.php }}
+#          path: vendor
 
-      - name: Discover package for Testbench
-        run: |
-          php ./vendor/bin/testbench package:discover --no-ansi
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-ansi --no-interaction --no-progress --no-scripts
+
+#      - name: Discover package for Testbench
+#        run: |
+#          php ./vendor/bin/testbench package:discover --no-ansi
 
       - name: Run PHPUnit with JUnit output
         run: | 
