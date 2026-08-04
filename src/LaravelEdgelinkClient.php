@@ -236,8 +236,8 @@ class LaravelEdgelinkClient
         }
 
         return $this->baseRequest()->withHeaders([
-            'Cookie' => 'SID='.$this->sessionId,
-        ]);
+            'Cookie' => 'SID='.$this->sessionId.'; ADAMSID='.$this->sessionId,
+        ])->asJson();
     }
 
     protected function baseRequest(): PendingRequest
@@ -292,12 +292,8 @@ class LaravelEdgelinkClient
 
         $json = $response->json();
 
-        if (is_array($json)) {
-            $candidate = $json['session_id'] ?? $json['sessionId'] ?? $json['sid'] ?? null;
-
-            if (is_string($candidate) && $candidate !== '') {
-                return $candidate;
-            }
+        if (isset($json['session_id']) && is_string($json['session_id'])) {
+            return $json['session_id'];
         }
 
         return null;
