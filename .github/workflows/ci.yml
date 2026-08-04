@@ -152,9 +152,13 @@ jobs:
           name: vendor-php-${{ matrix.php }}
           path: vendor
 
+      - name: Discover package for Testbench
+        run: |
+          php ./vendor/bin/testbench package:discover --ansi
+
       - name: Run PHPUnit with JUnit output
         run: | 
-          php -d memory_limit=1024M ./vendor/bin/phpunit --log-junit junit.xml
+          php ./vendor/bin/phpunit --log-junit junit.xml
 
       - name: Upload test artifacts
         if: always()

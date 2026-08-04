@@ -26,6 +26,7 @@
   </source>
 
   <php>
+    <env name="APP_BASE_PATH" value="."/>
     <env name="APP_ENV" value="testing"/>
     <env name="APP_DEBUG" value="true"/>
     <env name="CACHE_STORE" value="array"/>

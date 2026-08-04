@@ -105,6 +105,7 @@ test:phpunit:
     - *cache_php_pull
   before_script:
     - echo 'memory_limit = 1024M' >> /usr/local/etc/php/conf.d/docker-php-memory-limit.ini
+    - php ./vendor/bin/testbench package:discover --ansi
   script:
     - ./vendor/bin/phpunit --log-junit junit.xml
   artifacts:
