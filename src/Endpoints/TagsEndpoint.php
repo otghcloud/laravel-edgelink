@@ -3,6 +3,7 @@
 namespace OTGH\LaravelEdgelink\Endpoints;
 
 use OTGH\LaravelEdgelink\Endpoints\Concerns\FormatsEndpointResponses;
+use OTGH\LaravelEdgelink\Exceptions\RequestException;
 use OTGH\LaravelEdgelink\LaravelEdgelinkClient;
 
 class TagsEndpoint
@@ -24,13 +25,17 @@ class TagsEndpoint
      */
     public function list(?bool $raw = null, ?string $responseMode = null, ?bool $debug = null): array|string|null
     {
-        return $this->requestAndFormat(
-            method: 'GET',
-            path: '/data/tags',
-            normalizer: fn (mixed $rawPayload) => $this->normalizeTagsCollection($rawPayload),
+        $traceStart = $this->client->beginDebugTrace();
+        $collection = $this->requestTagCollectionWithFallback();
+
+        return $this->formatResponse(
+            normalized: $this->normalizeTagsCollection($collection['payload']),
+            rawPayload: $collection['payload'],
             raw: $raw,
             responseMode: $responseMode,
-            debug: $debug,
+            meta: ['source' => $collection['source']],
+            includeDebug: $debug,
+            debugPayload: ['exchanges' => $this->client->collectDebugTrace($traceStart)],
         );
     }
 
@@ -65,7 +70,8 @@ class TagsEndpoint
         }
 
         $traceStart = $this->client->beginDebugTrace();
-        $rawTags = $this->client->requestJson('GET', '/data/tags');
+        $collection = $this->requestTagCollectionWithFallback();
+        $rawTags = $collection['payload'];
         $normalizedTags = $this->normalizeTagsCollection($rawTags);
         $selectedTag = null;
 
@@ -81,10 +87,42 @@ class TagsEndpoint
             rawPayload: $selectedTag,
             raw: $raw,
             responseMode: $responseMode,
-            meta: ['source' => '/data/tags', 'tag_name' => $tagName],
+            meta: ['source' => $collection['source'], 'tag_name' => $tagName],
             includeDebug: $debug,
             debugPayload: ['exchanges' => $this->client->collectDebugTrace($traceStart)],
         );
+    }
+
+    /**
+     * Read tags collection with fallback for older firmware that lacks /data/tags.
+     *
+     * @return array{payload:array<string, mixed>,source:string}
+     */
+    protected function requestTagCollectionWithFallback(): array
+    {
+        try {
+            return [
+                'payload' => $this->client->requestJson('GET', '/data/tags'),
+                'source' => '/data/tags',
+            ];
+        } catch (RequestException $exception) {
+            if (! $this->shouldUseLegacyTagFallback($exception)) {
+                throw $exception;
+            }
+        }
+
+        return [
+            'payload' => $this->client->requestJson('GET', '/data/tag'),
+            'source' => '/data/tag',
+        ];
+    }
+
+    /**
+     * Determine if tag-list request errors should trigger legacy fallback.
+     */
+    protected function shouldUseLegacyTagFallback(RequestException $exception): bool
+    {
+        return in_array($exception->statusCode(), [400, 404, 405, 500], true);
     }
 
     /**

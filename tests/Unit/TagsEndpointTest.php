@@ -8,6 +8,59 @@ use Tests\TestCase;
 
 class TagsEndpointTest extends TestCase
 {
+    public function test_list_falls_back_to_legacy_data_tag_endpoint_when_data_tags_is_unavailable(): void
+    {
+        Http::fake([
+            'https://rtu.local/data/tags' => Http::response(['error' => 'not found'], 404),
+            'https://rtu.local/data/tag' => Http::response([
+                'TagA' => ['value' => '12'],
+                'TagB' => ['name' => '', 'value' => '14'],
+                'TagC' => '15',
+            ], 200),
+        ]);
+
+        $client = LaravelEdgelinkClient::make('https://rtu.local', 'pw', 'https://rtu.local', true);
+        $client->setSessionId('sid');
+
+        $result = $client->tags()->list();
+
+        $this->assertSame('TagA', $result[0]['name']);
+        $this->assertSame('TagB', $result[1]['name']);
+        $this->assertSame(['name' => 'TagC', 'value' => '15'], $result[2]);
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://rtu.local/data/tags' && $request->method() === 'GET';
+        });
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://rtu.local/data/tag' && $request->method() === 'GET';
+        });
+    }
+
+    public function test_list_envelope_reports_legacy_source_when_fallback_is_used(): void
+    {
+        Http::fake([
+            'https://rtu.local/data/tags' => Http::response(['error' => 'not found'], 404),
+            'https://rtu.local/data/tag' => Http::response([
+                ['name' => 'TagA', 'value' => '1'],
+            ], 200),
+        ]);
+
+        $client = LaravelEdgelinkClient::make(
+            baseUrl: 'https://rtu.local',
+            password: 'pw',
+            referer: 'https://rtu.local',
+            verifyTls: true,
+            responseMode: 'envelope',
+        );
+        $client->setSessionId('sid');
+
+        $result = $client->tags()->list();
+
+        $this->assertTrue($result['ok']);
+        $this->assertSame('/data/tag', $result['meta']['source']);
+        $this->assertSame([['name' => 'TagA', 'value' => '1']], $result['data']);
+    }
+
     public function test_list_can_return_envelope_response(): void
     {
         Http::fake([
