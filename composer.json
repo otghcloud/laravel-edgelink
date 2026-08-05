@@ -55,7 +55,9 @@
         "test-coverage": "XDEBUG_MODE=coverage vendor/bin/phpunit --coverage-clover coverage.xml --coverage-text",
         "format": "vendor/bin/pint",
         "rtu:cli": "php development/rtu-cli.php",
-        "rtu:probe": "php development/rtu-cli.php probe"
+        "rtu:probe": "php development/rtu-cli.php probe",
+        "rtu:e2e": "php development/rtu-e2e.php",
+        "rtu:e2e:writes": "php development/rtu-e2e.php --allow-write=true"
     },
     "config": {
         "sort-packages": true,

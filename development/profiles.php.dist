@@ -1,0 +1,45 @@
+<?php
+// Copy this file to development/profiles.php for local multi-RTU E2E runs.
+
+declare(strict_types=1);
+
+return [
+    'legacy' => [
+        'base_url' => 'https://192.168.1.10',
+        'password' => 'replace-me',
+        'referer' => null,
+        'verify_tls' => false,
+        'timeout' => 10,
+
+        // Read-target defaults used by io.read checks.
+        'io_targets' => [
+            'ai' => ['slot' => 0, 'channel' => 0],
+            'di' => ['slot' => 0, 'channel' => 0],
+            'do' => ['slot' => 0, 'channel' => 0],
+        ],
+
+        // Optional mutating check targets when --allow-write=true.
+        'write_targets' => [
+            // Set to an existing writable tag to pin the check; null auto-selects a scalar tag.
+            'tag_name' => null,
+            'do' => ['slot' => 0, 'channel' => 0],
+        ],
+    ],
+
+    'latest' => [
+        'base_url' => 'https://192.168.1.11',
+        'password' => 'replace-me',
+        'referer' => null,
+        'verify_tls' => false,
+        'timeout' => 10,
+        'io_targets' => [
+            'ai' => ['slot' => 0, 'channel' => 0],
+            'di' => ['slot' => 0, 'channel' => 0],
+            'do' => ['slot' => 0, 'channel' => 0],
+        ],
+        'write_targets' => [
+            'tag_name' => null,
+            'do' => ['slot' => 0, 'channel' => 0],
+        ],
+    ],
+];
