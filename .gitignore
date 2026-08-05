@@ -34,4 +34,6 @@ testbench.yaml
 /bootstrap/cache/*
 !/bootstrap/cache/.gitignore
 /development/config.php
+/development/profiles.php
+/development/reports
 /local
